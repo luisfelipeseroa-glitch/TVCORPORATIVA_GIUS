@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TV Corporativa</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --azul: #0b4fa1; --azul-escuro: #061d3a; --azul-claro: #00d4ff;
+  --verde: #00e57a; --amarelo: #ffd600; --vermelho: #ff3b3b;
+  --glass: rgba(255,255,255,0.07); --glass-border: rgba(255,255,255,0.12);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body, html { height: 100%; width: 100%; font-family: 'Montserrat', 'Segoe UI', Roboto, Arial, sans-serif; background: #000; overflow: hidden; color: #fff; }
+body.idle { cursor: none; }
+
+/* ── LAYOUT ── */
+.app { display: grid; grid-template-columns: 22% 78%; grid-template-rows: minmax(0,1fr) auto 13vh; height: 100vh; background: radial-gradient(ellipse at 30% 50%, #0b2d5e 0%, #000 70%); }
+
+/* ── SIDEBAR ── */
+.sidebar { grid-row: span 3; background: linear-gradient(170deg, #0d5bbf 0%, #061d3a 60%, #000 100%); border-right: 1px solid rgba(0,212,255,0.25); display: flex; flex-direction: column; align-items: center; padding: 1.8vw 1.2vw; gap: 1.4vh; position: relative; z-index: 10; min-height: 0; box-shadow: 8px 0 40px rgba(0,0,0,0.6); }
+.sidebar::after { content: ''; position: absolute; top: 0; right: 0; bottom: 0; width: 1px; background: linear-gradient(to bottom, transparent, var(--azul-claro), transparent); opacity: 0.4; }
+.logo { width: 75%; height: auto; max-height: 22vh; object-fit: contain; margin-bottom: 0.5vh; }
+.logo-text { font-weight: 900; font-size: 1.6vw; font-size: clamp(18px,1.6vw,48px); letter-spacing: 3px; text-align: center; color: #fff; }
+.divider { width: 80%; height: 1px; background: linear-gradient(to right, transparent, rgba(0,212,255,0.4), transparent); flex-shrink: 0; }
+.weather-card { background: var(--glass); border: 1px solid var(--glass-border); border-radius: 16px; padding: 0.9vw 0.7vw; width: 100%; text-align: center; flex-shrink: 0; }
+.weather-icon { font-size: 2.8vw; font-size: clamp(32px,2.8vw,84px); display: block; margin-bottom: 0.3vh; }
+.weather-temp { font-size: 2.2vw; font-size: clamp(26px,2.2vw,66px); font-weight: 900; color: var(--azul-claro); display: block; }
+.weather-desc { font-size: 0.75vw; font-size: clamp(12px,0.75vw,22px); font-weight: 500; color: rgba(255,255,255,0.65); text-transform: uppercase; letter-spacing: 1.5px; margin-top: 0.3vh; display: block; }
+.notices-box { background: rgba(0,0,0,0.25); border: 1px solid rgba(0,212,255,0.2); border-radius: 20px; padding: 1vw 0.9vw; width: 100%; flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
+.notices-header { font-size: 0.75vw; font-size: clamp(12px,0.75vw,22px); font-weight: 700; color: var(--azul-claro); text-transform: uppercase; letter-spacing: 3px; text-align: center; padding-bottom: 0.8vh; border-bottom: 1px solid rgba(0,212,255,0.15); margin-bottom: 1vh; flex-shrink: 0; }
+.notices-content { position: relative; flex: 1; display: flex; align-items: center; justify-content: center; min-height: 0; }
+.notice-item { position: absolute; width: 100%; opacity: 0; transform: translateY(12px); transition: opacity 0.8s ease, transform 0.8s ease; font-size: 1.2vw; font-size: clamp(16px,1.2vw,38px); line-height: 1.55; text-align: center; padding: 0 0.3vw; pointer-events: none; overflow-wrap: anywhere; }
+.notice-item.active { opacity: 1; transform: translateY(0); }
+.notice-item .badge { display: inline-block; font-size: 0.7vw; font-size: clamp(11px,0.7vw,18px); font-weight: 700; text-transform: uppercase; letter-spacing: 2px; padding: 2px 10px; border-radius: 20px; margin-bottom: 0.6vh; }
+.badge-info  { background: rgba(0,212,255,0.15); color: var(--azul-claro); border: 1px solid rgba(0,212,255,0.3); }
+.badge-warn  { background: rgba(255,214,0,0.15);  color: var(--amarelo);   border: 1px solid rgba(255,214,0,0.3); }
+.badge-alert { background: rgba(255,59,59,0.15);  color: var(--vermelho);  border: 1px solid rgba(255,59,59,0.3); }
+.badge-ok    { background: rgba(0,229,122,0.12);  color: var(--verde);     border: 1px solid rgba(0,229,122,0.3); }
+.notice-dots { display: flex; justify-content: center; padding-top: 1vh; flex-shrink: 0; }
+.notice-dot { width: 5px; height: 5px; margin: 0 3px; border-radius: 50%; background: rgba(255,255,255,0.2); transition: background 0.4s, width 0.4s; }
+.notice-dot.active { background: var(--azul-claro); width: 14px; border-radius: 3px; }
+.sidebar-footer { font-size: 0.6vw; font-size: clamp(10px,0.6vw,16px); letter-spacing: 1.5px; opacity: 0.45; text-align: center; flex-shrink: 0; }
+.net-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #00e57a; margin-right: 6px; opacity: 0.6; vertical-align: middle; }
+.net-dot.off { background: #ff3b3b; opacity: 1; }
+
+/* ── MAIN ── */
+.main { display: flex; justify-content: center; align-items: center; overflow: hidden; position: relative; min-height: 0; }
+.slide-counter { position: absolute; top: 1.2vh; right: 1.2vw; font-size: 0.7vw; font-size: clamp(11px,0.7vw,18px); font-weight: 700; color: rgba(255,255,255,0.35); letter-spacing: 2px; z-index: 5; }
+#display { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; transition: opacity 0.7s ease; }
+.media-image { max-width: 94%; max-height: 94%; object-fit: contain; border-radius: 12px; animation: kenBurns 12s ease-in-out; }
+@keyframes kenBurns { from { transform: scale(1.04); } to { transform: scale(1); } }
+.media-video { width: 92%; max-height: 94%; object-fit: contain; border-radius: 12px; }
+.empty-state { text-align: center; opacity: 0.85; display: flex; flex-direction: column; align-items: center; }
+.empty-state img { max-width: 30vw; max-height: 30vh; object-fit: contain; }
+.empty-state .logo-text { font-size: 3vw; font-size: clamp(24px,3vw,90px); }
+.empty-state small { margin-top: 2vh; font-size: 1vw; font-size: clamp(12px,1vw,26px); color: rgba(255,255,255,0.5); }
+
+/* ── FAIXA DE STATUS ── */
+.status-bar { grid-column: 2; background: #0a1828; border-top: 1px solid rgba(0,212,255,0.15); border-bottom: 1px solid rgba(0,212,255,0.1); display: flex; align-items: stretch; min-height: 0; overflow: hidden; }
+.status-bar.emergency { background: #1a0505; border-color: var(--vermelho); animation: emergencyPulse 1.2s ease-in-out infinite; }
+@keyframes emergencyPulse { 0%, 100% { background: #1a0505; border-color: rgba(255,59,59,0.4); } 50% { background: #2d0808; border-color: rgba(255,59,59,0.9); } }
+.emergency-banner { display: none; align-items: center; background: var(--vermelho); padding: 0 1.5vw; flex-shrink: 0; min-width: 0; }
+.status-bar.emergency .emergency-banner { display: flex; }
+.emergency-icon { font-size: 1.8vw; font-size: clamp(24px,1.8vw,56px); margin-right: 1vw; animation: iconPulse 0.8s ease-in-out infinite; }
+@keyframes iconPulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.2)} }
+.emergency-label { font-size: 0.85vw; font-size: clamp(13px,0.85vw,24px); font-weight: 900; letter-spacing: 2px; text-transform: uppercase; line-height: 1.3; white-space: nowrap; }
+.emergency-msg { font-size: 1vw; font-size: clamp(14px,1vw,28px); font-weight: 700; flex: 1; align-items: center; padding: 0 1.2vw; line-height: 1.4; }
+.wait-times { display: flex; align-items: stretch; flex: 1; min-width: 0; }
+.wait-item { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 0.6vh 0.5vw; border-right: 1px solid rgba(255,255,255,0.06); }
+.wait-priority { font-size: 0.8vw; font-size: clamp(12px,0.8vw,22px); font-weight: 700; text-transform: uppercase; letter-spacing: 2px; opacity: 0.75; }
+.wait-time { font-size: 2vw; font-size: clamp(22px,2vw,60px); font-weight: 900; line-height: 1.1; }
+.wait-label { font-size: 0.65vw; font-size: clamp(11px,0.65vw,18px); opacity: 0.6; text-transform: uppercase; letter-spacing: 1px; text-align: center; }
+.wait-dot { width: 8px; height: 8px; border-radius: 50%; margin-bottom: 0.2vh; flex-shrink: 0; }
+.wait-updated { flex: 0 0 auto; display: flex; align-items: center; justify-content: center; text-align: center; padding: 0 1vw; max-width: 14vw; font-size: 0.7vw; font-size: clamp(11px,0.7vw,18px); line-height: 1.4; color: rgba(255,255,255,0.65); }
+.wait-updated.stale { color: var(--amarelo); font-weight: 700; }
+.wait-times.is-stale .wait-time { color: rgba(255,255,255,0.35) !important; }
+.wait-times.is-stale .wait-dot { background: rgba(255,255,255,0.3) !important; }
+.priority-vermelho .wait-time { color: #ff6b6b; } .priority-vermelho .wait-dot { background: #ff6b6b; }
+.priority-laranja  .wait-time { color: #ffa040; } .priority-laranja  .wait-dot { background: #ffa040; }
+.priority-amarelo  .wait-time { color: var(--amarelo); } .priority-amarelo .wait-dot { background: var(--amarelo); }
+.priority-verde    .wait-time { color: var(--verde); }   .priority-verde   .wait-dot { background: var(--verde); }
+.priority-azul     .wait-time { color: var(--azul-claro); } .priority-azul .wait-dot { background: var(--azul-claro); }
+
+/* ── FOOTER ── */
+.footer { grid-column: 2; background: #fff; display: flex; align-items: center; position: relative; overflow: hidden; }
+.progress-bar { position: absolute; top: 0; left: 0; height: 3px; background: linear-gradient(to right, var(--azul), var(--azul-claro)); width: 0%; z-index: 5; }
+.time-box { background: var(--azul); color: #fff; height: 100%; width: 22%; display: flex; flex-direction: column; justify-content: center; align-items: center; font-weight: 900; clip-path: polygon(0 0, 90% 0, 100% 100%, 0% 100%); flex-shrink: 0; padding-right: 1.5vw; z-index: 2; }
+#clock { font-size: 3.2vw; font-size: clamp(32px,3.2vw,96px); line-height: 1; color: var(--azul-claro); }
+#date  { font-size: 1vw; font-size: clamp(12px,1vw,30px); color: rgba(255,255,255,0.8); margin-top: 0.3vh; }
+.ticker-wrap { flex: 1; overflow: hidden; background: #f4f4f4; height: 100%; display: flex; align-items: center; }
+.ticker-track { display: flex; align-items: center; white-space: nowrap; animation: ticker 60s linear infinite; }
+.ticker-item { display: inline-flex; align-items: center; font-size: 2.2vw; font-size: clamp(20px,2.2vw,64px); font-weight: 700; color: var(--azul-escuro); padding: 0 3vw; }
+.ticker-sep { width: 6px; height: 6px; margin-left: 3vw; border-radius: 50%; background: var(--azul); opacity: 0.3; flex-shrink: 0; }
+@keyframes ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+/* ── PAREAMENTO ── */
+#pairing { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; z-index: 100; background: radial-gradient(ellipse at 30% 40%, #0b2d5e 0%, #000 75%); flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 4vw; }
+#pairing.open { display: flex; }
+.pair-title { font-size: 1.8vw; font-size: clamp(18px,1.8vw,52px); letter-spacing: 5px; text-transform: uppercase; color: var(--azul-claro); font-weight: 700; margin-bottom: 4vh; }
+.pair-code { font-size: 11vw; font-size: clamp(60px,11vw,320px); font-weight: 900; letter-spacing: 0.12em; line-height: 1; margin-bottom: 4vh; text-shadow: 0 0 60px rgba(0,212,255,0.35); }
+.pair-help { font-size: 1.4vw; font-size: clamp(14px,1.4vw,40px); color: rgba(255,255,255,0.75); max-width: 70vw; line-height: 1.7; }
+.pair-help b { color: #fff; }
+.pair-status { margin-top: 3vh; font-size: 1vw; font-size: clamp(12px,1vw,28px); color: var(--amarelo); min-height: 1.4em; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <aside class="sidebar">
+    <div id="logoWrap" style="width:100%;display:flex;justify-content:center"></div>
+    <div class="divider" id="wDivider"></div>
+    <div class="weather-card" id="weatherCard">
+      <span class="weather-icon" id="wIcon">⏳</span>
+      <span class="weather-temp" id="wTemp">--°C</span>
+      <span class="weather-desc" id="wDesc">Carregando...</span>
+    </div>
+    <div class="divider"></div>
+    <div class="notices-box">
+      <div class="notices-header">Avisos e Informações</div>
+      <div class="notices-content" id="noticesContent"></div>
+      <div class="notice-dots" id="noticeDots"></div>
+    </div>
+    <div class="sidebar-footer"><span class="net-dot" id="netDot"></span><span id="footerText"></span></div>
+  </aside>
+
+  <main class="main">
+    <div class="slide-counter" id="slideCounter"></div>
+    <div id="display"></div>
+  </main>
+
+  <div class="status-bar" id="statusBar">
+    <div class="emergency-banner" id="emergencyBanner">
+      <span class="emergency-icon">🚨</span>
+      <div class="emergency-label">Ocorrência<br>Emergencial</div>
+    </div>
+    <div id="emergencyMsg" class="emergency-msg" style="display:none"></div>
+    <div class="wait-times" id="waitTimes"></div>
+  </div>
+
+  <footer class="footer">
+    <div id="progress" class="progress-bar"></div>
+    <div class="time-box">
+      <div id="clock">00:00</div>
+      <div id="date">--</div>
+    </div>
+    <div class="ticker-wrap" id="tickerWrap"><div class="ticker-track" id="tickerTrack"></div></div>
+  </footer>
+</div>
+
+<div id="pairing">
+  <div class="pair-title" id="pairTitle">Pareie esta TV</div>
+  <div class="pair-code" id="pairCode">------</div>
+  <div class="pair-help">No painel de administração, abra <b>TVs → Adicionar TV</b> e digite este código.<br>O código vale por 1 hora; depois disso um novo é gerado automaticamente.</div>
+  <div class="pair-status" id="pairStatus"></div>
+</div>
+
+<script src="config.js"></script>
+<script>
+(function () {
+'use strict';
+
+var VERSION = '3.0.0';
+var CFG = window.TV_CONFIG || {};
+var POLL_MS = 20000, PAIR_POLL_MS = 5000, RETRY_MS = 10000;
+var CACHE_NAME = 'tv-media-v1';
+var BADGES = ['ok','info','warn','alert'];
+var PRIORITY_CLS = ['priority-vermelho','priority-laranja','priority-amarelo','priority-verde','priority-azul'];
+var DEFAULT_SETTINGS = { brand_name: '', footer_text: '', logo_path: null, weather_enabled: true, weather_lat: -22.9068, weather_lon: -43.1729, weather_tz: 'America/Sao_Paulo', image_seconds: 12, notice_seconds: 8, wait_enabled: false, wait: [], wait_updated_at: null, wait_stale_hours: 4, emergency_active: false, emergency_msg: '', emergency_at: null, emergency_expire_min: 0 };
+
+function $(id) { return document.getElementById(id); }
+function sleep(ms) { return new Promise(function (r) { setTimeout(r, ms); }); }
+function lsGet(k, fb) { try { var v = localStorage.getItem(k); return v === null ? fb : JSON.parse(v); } catch (e) { return fb; } }
+function lsSet(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { return false; } }
+function lsDel(k) { try { localStorage.removeItem(k); } catch (e) {} }
+function withTimeout(p, ms) {
+  return new Promise(function (res, rej) {
+    var t = setTimeout(function () { rej(new Error('timeout')); }, ms);
+    p.then(function (v) { clearTimeout(t); res(v); }, function (e) { clearTimeout(t); rej(e); });
+  });
+}
+function rpc(name, body) {
+  return withTimeout(fetch(CFG.url + '/rest/v1/rpc/' + name, {
+    method: 'POST',
+    headers: { 'apikey': CFG.anon, 'Authorization': 'Bearer ' + CFG.anon, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body || {})
+  }), 15000).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); });
+}
+function pubUrl(path) {
+  return CFG.url + '/storage/v1/object/public/' + (CFG.bucket || 'media') + '/' + String(path).split('/').map(encodeURIComponent).join('/');
+}
+
+/* ── estado ── */
+var data = null, lastKey = '', skew = 0;
+function now() { return Date.now() + skew; }
+function S() { return (data && data.settings) || DEFAULT_SETTINGS; }
+function visible(it) {
+  var t = now();
+  return (!it.starts_at || Date.parse(it.starts_at) <= t) && (!it.ends_at || Date.parse(it.ends_at) > t);
+}
+
+/* ═══ RELÓGIO ═══ */
+function updateClock() {
+  var d = new Date();
+  $('clock').textContent = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  $('date').textContent = d.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short' }).toUpperCase().replace(/\./g, '');
+}
+setInterval(updateClock, 1000); updateClock();
+
+/* ═══ MARCA ═══ */
+function logoNode(cls) {
+  var s = S(), name = s.brand_name || '';
+  if (s.logo_path) {
+    var img = new Image();
+    img.className = cls; img.alt = name;
+    img.onerror = function () { var t = document.createElement('div'); t.className = 'logo-text'; t.textContent = name; if (img.parentNode) img.parentNode.replaceChild(t, img); };
+    img.src = pubUrl(s.logo_path);
+    return img;
+  }
+  var t = document.createElement('div'); t.className = 'logo-text'; t.textContent = name; return t;
+}
+function applyBrand() {
+  var s = S();
+  document.title = (s.brand_name || 'TV Corporativa') + ' — TV';
+  var w = $('logoWrap'); w.innerHTML = ''; w.appendChild(logoNode('logo'));
+  $('footerText').textContent = s.footer_text || s.brand_name || '';
+}
+
+/* ═══ CLIMA ═══ */
+var WMO = {0:['☀️','Céu limpo'],1:['🌤️','Poucas nuvens'],2:['⛅','Parcialmente nublado'],3:['☁️','Nublado'],45:['🌫️','Nevoeiro'],48:['🌫️','Nevoeiro'],51:['🌦️','Garoa leve'],53:['🌦️','Garoa moderada'],55:['🌧️','Garoa intensa'],56:['🌧️','Garoa gelada'],57:['🌧️','Garoa gelada'],61:['🌧️','Chuva leve'],63:['🌧️','Chuva moderada'],65:['🌧️','Chuva forte'],66:['🌧️','Chuva gelada'],67:['🌧️','Chuva gelada'],80:['🌦️','Pancadas'],81:['🌧️','Chuvas moderadas'],82:['🌩️','Chuvas fortes'],95:['⛈️','Tempestade'],96:['⛈️','Tempestade c/ granizo'],99:['⛈️','Tempestade c/ granizo']};
+function showWeather(i, t, d) { $('wIcon').textContent = i; $('wTemp').textContent = t; $('wDesc').textContent = d; }
+function applyWeatherVisibility() {
+  var on = S().weather_enabled !== false;
+  $('weatherCard').style.display = on ? '' : 'none';
+  $('wDivider').style.display = on ? '' : 'none';
+}
+function getWeather() {
+  var s = S();
+  if (s.weather_enabled === false) return;
+  var url = 'https://api.open-meteo.com/v1/forecast?latitude=' + s.weather_lat + '&longitude=' + s.weather_lon + '&current_weather=true&timezone=' + encodeURIComponent(s.weather_tz || 'auto');
+  withTimeout(fetch(url), 15000).then(function (r) { if (!r.ok) throw new Error('HTTP'); return r.json(); }).then(function (d) {
+    var cw = d.current_weather, m = WMO[cw.weathercode] || ['🌡️', 'Variável'], temp = Math.round(cw.temperature) + '°C';
+    showWeather(m[0], temp, m[1]);
+    lsSet('tv_weather', { icon: m[0], temp: temp, desc: m[1], t: Date.now() });
+  }).catch(function () {
+    var c = lsGet('tv_weather', null);
+    if (c && Date.now() - c.t < 3 * 3600e3) showWeather(c.icon, c.temp, c.desc); else showWeather('📡', '--°C', 'Sem conexão');
+  });
+}
+setInterval(getWeather, 15 * 60 * 1000);
+window.addEventListener('online', function () { getWeather(); schedule(500); });
+
+/* ═══ TICKER ═══ */
+var tickerItems = [];
+function buildTicker(items) {
+  var track = $('tickerTrack'), wrap = $('tickerWrap');
+  track.innerHTML = '';
+  if (!items.length) return;
+  function addCopy() {
+    items.forEach(function (text) {
+      var span = document.createElement('span'); span.className = 'ticker-item';
+      span.appendChild(document.createTextNode(text));
+      var sep = document.createElement('span'); sep.className = 'ticker-sep'; span.appendChild(sep);
+      track.appendChild(span);
+    });
+  }
+  addCopy();
+  var oneW = track.scrollWidth || 1;
+  var reps = Math.max(1, Math.ceil((wrap.clientWidth || window.innerWidth) / oneW));
+  track.innerHTML = '';
+  for (var i = 0; i < reps * 2; i++) addCopy();
+  var half = track.scrollWidth / 2;
+  track.style.animation = 'none'; void track.offsetWidth; track.style.animation = '';
+  track.style.animationDuration = Math.max(20, half / 110) + 's';
+}
+
+/* ═══ AVISOS ═══ */
+var noticeInterval = null;
+function fitNotices() {
+  var c = $('noticesContent'), maxH = c.clientHeight;
+  if (!maxH) return;
+  [].forEach.call(c.querySelectorAll('.notice-item'), function (el) {
+    el.style.fontSize = '';
+    var size = parseFloat(getComputedStyle(el).fontSize);
+    while (el.scrollHeight > maxH && size > 12) { size -= 1; el.style.fontSize = size + 'px'; }
+  });
+}
+function buildNotices(list) {
+  var c = $('noticesContent'), dotsEl = $('noticeDots');
+  c.innerHTML = ''; dotsEl.innerHTML = '';
+  if (noticeInterval) clearInterval(noticeInterval);
+  list.forEach(function (n, i) {
+    var el = document.createElement('div'); el.className = 'notice-item' + (i === 0 ? ' active' : '');
+    var b = document.createElement('span'); b.className = 'badge badge-' + (BADGES.indexOf(n.badge) >= 0 ? n.badge : 'info'); b.textContent = n.label || '';
+    el.appendChild(b); el.appendChild(document.createElement('br')); el.appendChild(document.createTextNode(n.text));
+    c.appendChild(el);
+    var dot = document.createElement('div'); dot.className = 'notice-dot' + (i === 0 ? ' active' : ''); dotsEl.appendChild(dot);
+  });
+  setTimeout(fitNotices, 50);
+  var idx = 0;
+  if (list.length > 1) noticeInterval = setInterval(function () {
+    var items = c.querySelectorAll('.notice-item'), dots = dotsEl.querySelectorAll('.notice-dot');
+    items[idx].classList.remove('active'); dots[idx].classList.remove('active');
+    idx = (idx + 1) % items.length;
+    items[idx].classList.add('active'); dots[idx].classList.add('active');
+  }, (S().notice_seconds || 8) * 1000);
+}
+window.addEventListener('resize', function () { fitNotices(); if (tickerItems.length) buildTicker(tickerItems); });
+
+var noticesKey = null, tickerKey = null;
+function refreshTexts(force) {
+  var d = data || {};
+  var n = (d.notices || []).filter(visible).filter(function (x) { return String(x.text || '').replace(/\s/g, ''); });
+  var t = (d.ticker || []).filter(visible).map(function (x) { return String(x.text || '').trim(); }).filter(Boolean);
+  var nk = JSON.stringify([n, S().notice_seconds]), tk = JSON.stringify(t);
+  if (force || nk !== noticesKey) { noticesKey = nk; buildNotices(n); }
+  if (force || tk !== tickerKey) { tickerKey = tk; tickerItems = t; buildTicker(t); }
+}
+
+/* ═══ STATUS (espera + emergência) ═══ */
+function emergencyActive() {
+  var s = S();
+  if (!s.emergency_active) return false;
+  if (s.emergency_expire_min > 0 && s.emergency_at && now() > Date.parse(s.emergency_at) + s.emergency_expire_min * 60000) return false;
+  return true;
+}
+function waitStale() {
+  var s = S();
+  return !s.wait_updated_at || (now() - Date.parse(s.wait_updated_at)) > (s.wait_stale_hours || 4) * 3600e3;
+}
+function fmtWhen(ts) {
+  var d = new Date(ts), hm = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  return d.toDateString() === new Date().toDateString() ? hm : d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) + ' ' + hm;
+}
+var statusKey = null;
+function buildStatusBar() {
+  var s = S(), em = emergencyActive(), showWait = s.wait_enabled !== false && (s.wait || []).length > 0, stale = waitStale();
+  var key = JSON.stringify([em, s.emergency_msg, showWait, stale, s.wait, s.wait_updated_at]);
+  if (key === statusKey) return; statusKey = key;
+  var bar = $('statusBar'), msgEl = $('emergencyMsg'), timesEl = $('waitTimes');
+  bar.style.display = (showWait || em) ? 'flex' : 'none';
+  if (em) bar.classList.add('emergency'); else bar.classList.remove('emergency');
+  var msg = String(s.emergency_msg || '').trim();
+  msgEl.textContent = em ? msg : ''; msgEl.style.display = (em && msg) ? 'flex' : 'none';
+  timesEl.innerHTML = ''; timesEl.style.display = showWait ? 'flex' : 'none';
+  if (!showWait) return;
+  if (stale) timesEl.classList.add('is-stale'); else timesEl.classList.remove('is-stale');
+  (s.wait || []).forEach(function (w) {
+    var item = document.createElement('div'); item.className = 'wait-item ' + (PRIORITY_CLS.indexOf(w.cls) >= 0 ? w.cls : '');
+    var t = parseInt(w.time, 10) || 0;
+    var ts = stale ? '—' : (t === 0 ? 'Imediato' : t < 60 ? t + ' min' : Math.floor(t / 60) + 'h' + (t % 60 ? ' ' + (t % 60) + 'm' : ''));
+    [['wait-dot', ''], ['wait-priority', w.label], ['wait-time', ts], ['wait-label', w.sublabel]].forEach(function (p) {
+      var d = document.createElement('div'); d.className = p[0]; d.textContent = p[1] || ''; item.appendChild(d);
+    });
+    timesEl.appendChild(item);
+  });
+  var upd = document.createElement('div'); upd.className = 'wait-updated' + (stale ? ' stale' : '');
+  upd.textContent = stale ? '⚠ Tempos em atualização' : 'Atualizado às ' + fmtWhen(Date.parse(s.wait_updated_at));
+  timesEl.appendChild(upd);
+}
+
+/* ═══ CACHE OFFLINE DE MÍDIA ═══ */
+function cacheOk() { return !!(window.caches && window.fetch); }
+var syncing = false, resync = false;
+function syncMediaCache() {
+  if (!cacheOk() || !data) return;
+  if (syncing) { resync = true; return; }
+  syncing = true;
+  var urls = (data.slides || []).map(function (s) { return pubUrl(s.path); });
+  if (S().logo_path) urls.push(pubUrl(S().logo_path));
+  (async function () {
+    try {
+      var c = await caches.open(CACHE_NAME), keys = await c.keys(), want = {};
+      urls.forEach(function (u) { want[u] = 1; });
+      for (var i = 0; i < keys.length; i++) if (!want[keys[i].url]) await c.delete(keys[i]);
+      for (var j = 0; j < urls.length; j++) {
+        if (await c.match(urls[j])) continue;
+        try { var r = await fetch(urls[j]); if (r.ok) await c.put(urls[j], r); } catch (e) { /* tenta no próximo ciclo */ }
+      }
+    } catch (e) { console.warn('cache', e); }
+    syncing = false;
+    if (resync) { resync = false; syncMediaCache(); }
+  })();
+}
+async function resolveSrc(url) {
+  if (cacheOk()) {
+    try {
+      var r = await caches.match(url);
+      if (r) return { src: URL.createObjectURL(await r.blob()), revoke: true };
+    } catch (e) {}
+  }
+  return { src: url, revoke: false };
+}
+
+/* ═══ SLIDES ═══ */
+var currentIdx = 0, appSlides = [], failStreak = 0, playGen = 0, started = false, slidesSig = '';
+var slideTimer = null, watchdog = null, currentUrl = null;
+var display = $('display'), progressEl = $('progress'), counterEl = $('slideCounter');
+
+function setProgress(ms) {
+  progressEl.style.transition = 'none'; progressEl.style.width = '0%';
+  if (ms > 0) requestAnimationFrame(function () { requestAnimationFrame(function () { progressEl.style.transition = 'width ' + ms + 'ms linear'; progressEl.style.width = '100%'; }); });
+}
+function clearPlayTimers() { clearTimeout(slideTimer); clearInterval(watchdog); }
+function revokeCurrent() { if (currentUrl) { URL.revokeObjectURL(currentUrl); currentUrl = null; } }
+function visibleSlides() { return ((data && data.slides) || []).filter(visible); }
+function sigOf(list) { return list.map(function (s) { return s.id + ':' + s.path + ':' + (s.duration || ''); }).join('|'); }
+function showEmpty(msg) {
+  revokeCurrent(); display.innerHTML = '';
+  var box = document.createElement('div'); box.className = 'empty-state'; box.appendChild(logoNode(''));
+  if (msg) { var s = document.createElement('small'); s.textContent = msg; box.appendChild(s); }
+  display.appendChild(box); display.style.opacity = '1'; counterEl.textContent = ''; setProgress(0);
+}
+function stopPlayback() {
+  playGen++; clearPlayTimers(); revokeCurrent(); display.innerHTML = '';
+  started = false; slidesSig = ''; appSlides = []; counterEl.textContent = ''; setProgress(0);
+}
+function nextSlide() {
+  var cur = appSlides[currentIdx], curId = cur && cur.id;
+  var list = visibleSlides(); slidesSig = sigOf(list);
+  var pos = -1; for (var i = 0; i < list.length; i++) if (list[i].id === curId) pos = i;
+  appSlides = list;
+  currentIdx = (pos >= 0) ? (pos + 1) % list.length : (list.length ? currentIdx % list.length : 0);
+  showSlide();
+}
+function skipSlide(gen) {
+  if (gen !== playGen) return;
+  clearPlayTimers(); failStreak++;
+  if (failStreak >= appSlides.length) {
+    showEmpty('Não foi possível carregar as mídias. Tentando novamente…');
+    slideTimer = setTimeout(function () { failStreak = 0; showSlide(); }, 30000);
+  } else slideTimer = setTimeout(nextSlide, 500);
+}
+async function showSlide() {
+  clearPlayTimers();
+  var gen = ++playGen;
+  if (!appSlides.length) { showEmpty('Nenhuma mídia cadastrada.'); return; }
+  if (currentIdx >= appSlides.length) currentIdx = 0;
+  var s = appSlides[currentIdx];
+  counterEl.textContent = (currentIdx + 1) + ' / ' + appSlides.length;
+  display.style.opacity = '0';
+  await sleep(700);
+  if (gen !== playGen) return;
+  var res = null;
+  try { res = await resolveSrc(pubUrl(s.path)); } catch (e) {}
+  if (gen !== playGen) { if (res && res.revoke) URL.revokeObjectURL(res.src); return; }
+  revokeCurrent(); display.innerHTML = '';
+  if (!res) return skipSlide(gen);
+  if (res.revoke) currentUrl = res.src;
+
+  if (s.type === 'video') {
+    var v = document.createElement('video');
+    v.muted = true; v.setAttribute('playsinline', ''); v.autoplay = true; v.className = 'media-video'; v.src = res.src;
+    v.onended = function () { if (gen === playGen) nextSlide(); };
+    v.onerror = function () { skipSlide(gen); };
+    v.onplaying = function () { failStreak = 0; };
+    v.onloadedmetadata = function () { if (gen === playGen && isFinite(v.duration)) setProgress(v.duration * 1000); };
+    display.appendChild(v); setProgress(0);
+    var p = v.play(); if (p && p.catch) p.catch(function () { skipSlide(gen); });
+    var last = -1, stuck = 0;
+    watchdog = setInterval(function () {
+      if (gen !== playGen) return;
+      if (v.currentTime === last && !v.ended) { if (++stuck >= 3) skipSlide(gen); } else { stuck = 0; last = v.currentTime; }
+    }, 5000);
+  } else {
+    var img = new Image(); img.className = 'media-image'; img.alt = '';
+    img.onload = function () { failStreak = 0; };
+    img.onerror = function () { skipSlide(gen); };
+    img.src = res.src; display.appendChild(img);
+    var ms = (s.duration || S().image_seconds || 12) * 1000;
+    setProgress(ms);
+    slideTimer = setTimeout(function () { if (gen === playGen) nextSlide(); }, ms);
+  }
+  display.style.opacity = '1';
+}
+function refreshSlides() {
+  var cur = appSlides[currentIdx], curId = cur && cur.id;
+  var list = visibleSlides(), sig = sigOf(list), changed = sig !== slidesSig;
+  slidesSig = sig; appSlides = list;
+  if (!started) { started = true; currentIdx = 0; showSlide(); return; }
+  if (!changed) return;
+  var pos = -1; for (var i = 0; i < list.length; i++) if (list[i].id === curId) pos = i;
+  if (pos >= 0) { currentIdx = pos; counterEl.textContent = (pos + 1) + ' / ' + list.length; }
+  else { currentIdx = 0; showSlide(); }
+}
+
+/* ═══ APLICAÇÃO DOS DADOS ═══ */
+function applyPayload(p) {
+  var key = JSON.stringify([p.settings, p.slides, p.notices, p.ticker, p.screen]);
+  if (key === lastKey) return;
+  var prevWeather = data ? JSON.stringify([S().weather_lat, S().weather_lon, S().weather_enabled]) : null;
+  lastKey = key; data = p;
+  statusKey = null;
+  applyBrand(); applyWeatherVisibility();
+  if (prevWeather !== JSON.stringify([S().weather_lat, S().weather_lon, S().weather_enabled])) getWeather();
+  refreshTexts(true); buildStatusBar(); refreshSlides(); syncMediaCache();
+}
+setInterval(function () { if (data) { refreshTexts(false); buildStatusBar(); refreshSlides(); } }, 30000);
+
+/* ═══ PAREAMENTO / POLL ═══ */
+function showPairing(code, msg) {
+  $('pairing').className = 'open';
+  $('pairCode').textContent = code ? code.slice(0, 3) + ' ' + code.slice(3) : '------';
+  $('pairStatus').textContent = msg || '';
+}
+function hidePairing() { $('pairing').className = ''; }
+var offlineSince = 0;
+function setOnline(ok) {
+  if (ok) { offlineSince = 0; $('netDot').className = 'net-dot'; return; }
+  if (!offlineSince) offlineSince = Date.now();
+  if (Date.now() - offlineSince > 120000) $('netDot').className = 'net-dot off';
+}
+function deviceInfo() { return ('v' + VERSION + ' ' + screen.width + 'x' + screen.height + ' ' + navigator.userAgent).slice(0, 190); }
+
+var pollTimer = null;
+function schedule(ms) { clearTimeout(pollTimer); pollTimer = setTimeout(tick, ms); }
+async function tick() {
+  try {
+    var cred = lsGet('tv_cred', null);
+    if (!cred || !cred.screen_id) {
+      var reg = await rpc('player_register');
+      cred = { screen_id: reg.screen_id, secret: reg.secret };
+      lsSet('tv_cred', cred);
+    }
+    var res = await rpc('player_poll', { p_screen: cred.screen_id, p_secret: cred.secret, p_info: deviceInfo() });
+    if (res.server_time) skew = Date.parse(res.server_time) - Date.now();
+    if (res.status === 'unknown') {              // TV removida no painel: volta ao pareamento
+      lsDel('tv_cred'); lsDel('tv_cache'); data = null; lastKey = ''; stopPlayback();
+      if (cacheOk()) caches.delete(CACHE_NAME);
+      schedule(500); return;
+    }
+    if (res.status === 'expired') { lsDel('tv_cred'); schedule(500); return; }
+    if (res.status === 'pending') { showPairing(res.code); schedule(PAIR_POLL_MS); return; }
+    if (res.status === 'ok') {
+      hidePairing(); setOnline(true); lsSet('tv_cache', res); applyPayload(res); schedule(POLL_MS); return;
+    }
+    throw new Error('resposta inesperada');
+  } catch (e) {
+    console.warn('Falha ao falar com o servidor:', e);
+    setOnline(false);
+    if (!data) {
+      var cache = lsGet('tv_cache', null);
+      if (cache && lsGet('tv_cred', null)) applyPayload(cache);     // abre offline com o último conteúdo
+      else showPairing(null, 'Sem conexão com o servidor. Tentando novamente…');
+    }
+    schedule(RETRY_MS);
+  }
+}
+
+/* ═══ INICIALIZAÇÃO ═══ */
+(function init() {
+  var cache = lsGet('tv_cache', null);
+  if (cache && lsGet('tv_cred', null)) { applyPayload(cache); getWeather(); }   // arranque imediato, mesmo offline
+  else { applyBrand(); }
+  tick();
+  console.log('TV player v' + VERSION);
+})();
+
+/* Recarga diária às 04:00 (pega nova versão do player e limpa memória) */
+setInterval(function () {
+  var d = new Date(), hm = d.toTimeString().slice(0, 5), day = d.toDateString();
+  if (hm === '04:00' && lsGet('tv_last_reload', '') !== day) { lsSet('tv_last_reload', day); location.reload(); }
+}, 30000);
+
+/* Cursor some após 3 s parado; tela cheia ao clicar */
+var idleT;
+function wake() { document.body.classList.remove('idle'); clearTimeout(idleT); idleT = setTimeout(function () { document.body.classList.add('idle'); }, 3000); }
+['mousemove', 'mousedown', 'keydown', 'touchstart'].forEach(function (ev) { document.addEventListener(ev, wake); }); wake();
+document.addEventListener('click', function () {
+  var el = document.documentElement;
+  if (!document.fullscreenElement && el.requestFullscreen) el.requestFullscreen().catch(function () {});
+});
+})();
+</script>
+</body>
+</html>

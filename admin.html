@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel — TV Corporativa</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root { --bg:#07111f; --card:#0d1c30; --line:rgba(255,255,255,.09); --txt:#e8f0fa; --mut:rgba(232,240,250,.55); --azul:#0b4fa1; --ciano:#00d4ff; --verde:#00e57a; --am:#ffd600; --verm:#ff4d4d; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { background: var(--bg); color: var(--txt); font-family: 'Montserrat','Segoe UI',Roboto,Arial,sans-serif; font-size: 14px; min-height: 100%; }
+.hidden { display: none !important; }
+button, input, select, textarea { font-family: inherit; font-size: inherit; color: inherit; }
+input, select, textarea { background: rgba(0,0,0,.35); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; outline: none; width: 100%; }
+input:focus, select:focus, textarea:focus { border-color: var(--ciano); }
+input[type=checkbox] { width: auto; }
+textarea { resize: vertical; min-height: 64px; }
+.btn { background: var(--azul); border: 0; border-radius: 9px; color: #fff; font-weight: 700; padding: 9px 16px; cursor: pointer; white-space: nowrap; }
+.btn:hover { background: #0d62c9; }
+.btn.sec { background: rgba(255,255,255,.07); border: 1px solid var(--line); font-weight: 500; }
+.btn.sec:hover { background: rgba(255,255,255,.14); }
+.btn.danger { background: rgba(255,77,77,.12); border: 1px solid rgba(255,77,77,.35); color: var(--verm); }
+.btn.danger:hover { background: rgba(255,77,77,.25); }
+.btn.red { background: #c62828; }
+.btn.red:hover { background: #e53935; }
+.btn.sm { padding: 5px 10px; font-size: 12px; }
+.muted { color: var(--mut); font-size: 12px; line-height: 1.5; }
+h2 { font-size: 18px; margin-bottom: 4px; } h3 { font-size: 14px; margin-bottom: 6px; letter-spacing: .5px; }
+
+/* login */
+.center { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+.box { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 28px; width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 12px; }
+.brand { font-size: 12px; letter-spacing: 4px; text-transform: uppercase; color: var(--ciano); font-weight: 700; }
+.msg { font-size: 12px; min-height: 1.3em; color: var(--am); }
+.msg.err { color: var(--verm); }
+.linkbtn { background: none; border: 0; color: var(--ciano); cursor: pointer; font-size: 12px; text-decoration: underline; padding: 2px; }
+
+/* app */
+header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 20px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+header .left { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+header select { width: auto; }
+nav { display: flex; gap: 2px; padding: 0 14px; border-bottom: 1px solid var(--line); overflow-x: auto; }
+nav button { background: none; border: 0; border-bottom: 2px solid transparent; color: var(--mut); padding: 12px 14px; cursor: pointer; font-weight: 700; font-size: 12px; letter-spacing: .5px; text-transform: uppercase; white-space: nowrap; }
+nav button:hover { color: var(--txt); }
+nav button.active { color: var(--ciano); border-bottom-color: var(--ciano); }
+main { max-width: 980px; margin: 0 auto; padding: 22px 16px 80px; display: flex; flex-direction: column; gap: 16px; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+.row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.row > input { flex: 1; min-width: 140px; }
+.scope { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.scope select { width: auto; min-width: 200px; }
+.item { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px 12px; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.item.off { opacity: .55; }
+.item-main { flex: 1; min-width: 160px; }
+.item-name { font-weight: 700; word-break: break-all; }
+.item-move { display: flex; flex-direction: column; gap: 3px; }
+.item-move button { background: rgba(255,255,255,.07); border: 1px solid var(--line); border-radius: 5px; width: 26px; height: 20px; font-size: 9px; cursor: pointer; }
+.item-move button:hover { background: rgba(0,212,255,.25); }
+.thumb { width: 84px; height: 48px; border-radius: 7px; overflow: hidden; background: #000; flex-shrink: 0; }
+.thumb img, .thumb video { width: 100%; height: 100%; object-fit: cover; }
+.dur { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--mut); }
+.dur input { width: 64px; padding: 5px 7px; }
+.chk { display: flex; align-items: center; gap: 6px; font-size: 12px; cursor: pointer; }
+details.sched { font-size: 12px; color: var(--mut); }
+details.sched summary { cursor: pointer; }
+details.sched label { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
+details.sched input { width: auto; padding: 5px 7px; }
+.notice-grid { display: grid; grid-template-columns: 130px 1fr; gap: 8px; flex: 1; min-width: 260px; }
+.notice-grid .full { grid-column: 1 / -1; }
+.drop { border: 2px dashed rgba(0,212,255,.3); border-radius: 12px; padding: 22px; text-align: center; cursor: pointer; background: rgba(0,212,255,.03); }
+.drop:hover, .drop.over { border-color: var(--ciano); background: rgba(0,212,255,.08); }
+.progress { height: 6px; background: rgba(0,0,0,.4); border-radius: 4px; overflow: hidden; margin-top: 8px; display: none; }
+.progress > div { height: 100%; width: 0; background: var(--ciano); transition: width .2s; }
+.pill { font-size: 11px; font-weight: 700; padding: 3px 10px; border-radius: 20px; white-space: nowrap; }
+.pill.on { background: rgba(0,229,122,.15); color: var(--verde); border: 1px solid rgba(0,229,122,.35); }
+.pill.off { background: rgba(255,77,77,.12); color: var(--verm); border: 1px solid rgba(255,77,77,.3); }
+.pill.warn { background: rgba(255,214,0,.12); color: var(--am); border: 1px solid rgba(255,214,0,.3); }
+.wait-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 10px; }
+.wait-cell { background: rgba(0,0,0,.25); border: 1px solid var(--line); border-radius: 10px; padding: 10px; display: flex; flex-direction: column; gap: 6px; }
+.dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
+.emerg { border-color: rgba(255,77,77,.4); background: rgba(255,77,77,.05); }
+.switch { display: flex; align-items: center; gap: 10px; cursor: pointer; font-weight: 700; }
+.switch input { width: 18px; height: 18px; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media (max-width: 600px) { .grid2 { grid-template-columns: 1fr; } .notice-grid { grid-template-columns: 1fr; } }
+.logo-prev { max-width: 200px; max-height: 80px; background: #0b4fa1; border-radius: 8px; padding: 8px; }
+code { background: rgba(0,0,0,.4); padding: 2px 6px; border-radius: 5px; font-size: 12px; word-break: break-all; }
+#toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%) translateY(20px); background: #0a7a3a; color: #fff; padding: 10px 18px; border-radius: 10px; font-weight: 700; opacity: 0; pointer-events: none; transition: all .25s; z-index: 50; max-width: 92vw; }
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+#toast.err { background: #b71c1c; }
+.flash { box-shadow: 0 0 0 2px var(--verde) !important; }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="auth" class="center hidden">
+  <form class="box" id="authForm" autocomplete="on">
+    <div class="brand" id="authBrand">TV Corporativa</div>
+    <h2>Entrar no painel</h2>
+    <input id="email" type="email" placeholder="E-mail" autocomplete="username" required>
+    <input id="password" type="password" placeholder="Senha (mín. 6 caracteres)" autocomplete="current-password" required minlength="6">
+    <div class="msg" id="authMsg"></div>
+    <button class="btn" type="submit" id="btnLogin">Entrar</button>
+    <div class="row" style="justify-content:space-between">
+      <button class="linkbtn" type="button" id="btnSignup">Criar conta</button>
+      <button class="linkbtn" type="button" id="btnForgot">Esqueci a senha</button>
+    </div>
+  </form>
+</div>
+
+<!-- NOVA SENHA (link de recuperação) -->
+<div id="recovery" class="center hidden">
+  <form class="box" id="recoveryForm">
+    <div class="brand">TV Corporativa</div>
+    <h2>Definir nova senha</h2>
+    <input id="newPw" type="password" placeholder="Nova senha" minlength="6" required autocomplete="new-password">
+    <div class="msg" id="recoveryMsg"></div>
+    <button class="btn" type="submit">Salvar senha</button>
+  </form>
+</div>
+
+<!-- CRIAR ORGANIZAÇÃO -->
+<div id="orgsetup" class="center hidden">
+  <form class="box" id="orgForm">
+    <div class="brand">TV Corporativa</div>
+    <h2>Crie sua organização</h2>
+    <p class="muted">É o “dono” das suas TVs, mídias e avisos. Pode ser o nome da unidade ou da empresa.</p>
+    <input id="orgName" placeholder="Ex.: UPA Rocinha" required maxlength="120">
+    <div class="msg err" id="orgMsg"></div>
+    <button class="btn" type="submit">Criar e continuar</button>
+    <button class="linkbtn" type="button" id="btnLogout1">Sair</button>
+  </form>
+</div>
+
+<!-- APP -->
+<div id="app" class="hidden">
+  <header>
+    <div class="left">
+      <span class="brand">TV Corporativa</span>
+      <select id="orgSelect" class="hidden"></select>
+      <strong id="orgTitle"></strong>
+    </div>
+    <div class="row">
+      <span class="muted" id="userEmail"></span>
+      <button class="btn sec sm" data-act="signout">Sair</button>
+    </div>
+  </header>
+  <nav id="tabs">
+    <button data-tab="tvs">📺 TVs</button>
+    <button data-tab="midia">🖼 Mídia</button>
+    <button data-tab="avisos">📋 Avisos</button>
+    <button data-tab="ticker">🔤 Ticker</button>
+    <button data-tab="espera">🏥 Espera e emergência</button>
+    <button data-tab="config">⚙ Configurações</button>
+  </nav>
+  <main id="content"></main>
+</div>
+<div id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script>
+(function () {
+'use strict';
+var CFG = window.TV_CONFIG;
+var sb = window.supabase.createClient(CFG.url, CFG.anon);
+var BUCKET = CFG.bucket || 'media';
+var SCREEN_COLS = 'id,org_id,name,claimed_at,last_seen,player_info,created_at';
+var S = { user: null, orgs: [], org: null, screens: [], slides: [], notices: [], ticker: [], settings: null, scope: 'all', tab: 'tvs' };
+
+/* ───────── utilidades ───────── */
+function $(s, r) { return (r || document).querySelector(s); }
+function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
+function uid() { return (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2, 10); }
+function safeName(n) { return String(n).normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-zA-Z0-9._-]+/g, '_').slice(-80); }
+function pubUrl(path) { return CFG.url + '/storage/v1/object/public/' + BUCKET + '/' + String(path).split('/').map(encodeURIComponent).join('/'); }
+function toLocalInput(iso) { if (!iso) return ''; var d = new Date(iso), p = function (n) { return String(n).padStart(2, '0'); }; return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate()) + 'T' + p(d.getHours()) + ':' + p(d.getMinutes()); }
+function fmtWhen(iso) { if (!iso) return '—'; var d = new Date(iso); return d.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }); }
+function ago(iso) {
+  if (!iso) return 'nunca';
+  var s = Math.max(0, Math.round((Date.now() - Date.parse(iso)) / 1000));
+  if (s < 90) return 'há ' + s + ' s'; if (s < 5400) return 'há ' + Math.round(s / 60) + ' min';
+  if (s < 129600) return 'há ' + Math.round(s / 3600) + ' h'; return 'há ' + Math.round(s / 86400) + ' dias';
+}
+var toastT;
+function toast(msg, err) { var t = $('#toast'); t.textContent = msg; t.className = 'show' + (err ? ' err' : ''); clearTimeout(toastT); toastT = setTimeout(function () { t.className = err ? 'err' : ''; }, err ? 5000 : 1800); }
+async function q(promise) {
+  try {
+    var r = await promise;
+    if (r && r.error) { console.error(r.error); toast('Erro: ' + (r.error.message || r.error), true); return null; }
+    return r || { data: null };
+  } catch (e) { console.error(e); toast('Erro: ' + (e.message || e), true); return null; }
+}
+function showOnly(id) { ['auth', 'recovery', 'orgsetup', 'app'].forEach(function (x) { $('#' + x).classList.toggle('hidden', x !== id); }); }
+function playerUrl() { return new URL('player.html', location.href).href; }
+
+/* ───────── autenticação ───────── */
+var authMode = 'login';
+function authMsg(t, err) { var m = $('#authMsg'); m.textContent = t || ''; m.className = 'msg' + (err ? ' err' : ''); }
+function showAuth() { showOnly('auth'); }
+function translateAuth(m) {
+  if (/invalid login/i.test(m)) return 'E-mail ou senha incorretos.';
+  if (/already registered|already been registered/i.test(m)) return 'Este e-mail já tem conta. Use “Entrar”.';
+  if (/email not confirmed/i.test(m)) return 'Confirme seu e-mail (link enviado) antes de entrar.';
+  if (/signups? not allowed|disabled/i.test(m)) return 'Criação de contas desativada. Peça acesso ao administrador.';
+  if (/password/i.test(m) && /6/.test(m)) return 'A senha precisa ter ao menos 6 caracteres.';
+  return m;
+}
+$('#authForm').addEventListener('submit', async function (e) {
+  e.preventDefault();
+  var email = $('#email').value.trim(), password = $('#password').value;
+  authMsg('Aguarde…');
+  if (authMode === 'signup') {
+    var r = await sb.auth.signUp({ email: email, password: password });
+    if (r.error) return authMsg(translateAuth(r.error.message), true);
+    if (r.data && r.data.session) { S.user = r.data.session.user; return boot(); }
+    authMode = 'login'; $('#btnLogin').textContent = 'Entrar';
+    return authMsg('Conta criada! Confirme o e-mail (se solicitado) e depois entre.');
+  }
+  var l = await sb.auth.signInWithPassword({ email: email, password: password });
+  if (l.error) return authMsg(translateAuth(l.error.message), true);
+  S.user = l.data.user || (l.data.session && l.data.session.user); authMsg(''); boot();
+});
+$('#btnSignup').addEventListener('click', function () {
+  authMode = authMode === 'login' ? 'signup' : 'login';
+  $('#btnLogin').textContent = authMode === 'signup' ? 'Criar conta' : 'Entrar';
+  $('#btnSignup').textContent = authMode === 'signup' ? 'Já tenho conta' : 'Criar conta';
+  authMsg('');
+});
+$('#btnForgot').addEventListener('click', async function () {
+  var email = $('#email').value.trim();
+  if (!email) return authMsg('Digite seu e-mail acima e clique de novo.', true);
+  var r = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.href.split('#')[0] });
+  authMsg(r.error ? translateAuth(r.error.message) : 'Enviamos um link para redefinir a senha.', !!r.error);
+});
+$('#recoveryForm').addEventListener('submit', async function (e) {
+  e.preventDefault();
+  var r = await sb.auth.updateUser({ password: $('#newPw').value });
+  if (r.error) { $('#recoveryMsg').textContent = r.error.message; $('#recoveryMsg').className = 'msg err'; return; }
+  history.replaceState(null, '', location.pathname); S.user = r.data.user; boot();
+});
+$('#orgForm').addEventListener('submit', async function (e) {
+  e.preventDefault();
+  var r = await sb.rpc('create_organization', { p_name: $('#orgName').value });
+  if (r.error) { $('#orgMsg').textContent = r.error.message; return; }
+  boot();
+});
+$('#btnLogout1').addEventListener('click', function () { sb.auth.signOut(); });
+sb.auth.onAuthStateChange(function (ev) {
+  if (ev === 'SIGNED_OUT') { S.user = null; showAuth(); }
+  if (ev === 'PASSWORD_RECOVERY') showOnly('recovery');
+});
+
+/* ───────── carga de dados ───────── */
+async function boot() {
+  var mem = await q(sb.from('org_members').select('org_id,role').eq('user_id', S.user.id));
+  if (!mem) return;
+  if (!mem.data.length) { showOnly('orgsetup'); return; }
+  var orgs = await q(sb.from('organizations').select('id,name').in('id', mem.data.map(function (m) { return m.org_id; })).order('name'));
+  if (!orgs) return;
+  S.orgs = orgs.data;
+  var saved = null; try { saved = localStorage.getItem('tv_admin_org'); } catch (e) {}
+  S.org = S.orgs.filter(function (o) { return o.id === saved; })[0] || S.orgs[0];
+  await loadAll();
+  showOnly('app'); renderHeader(); render();
+}
+async function loadAll() {
+  var org = S.org.id;
+  var res = await Promise.all([
+    q(sb.from('screens').select(SCREEN_COLS).eq('org_id', org).order('created_at')),
+    q(sb.from('slides').select('*').eq('org_id', org).order('sort_order').order('created_at')),
+    q(sb.from('notices').select('*').eq('org_id', org).order('sort_order').order('created_at')),
+    q(sb.from('ticker_items').select('*').eq('org_id', org).order('sort_order').order('created_at')),
+    q(sb.from('org_settings').select('*').eq('org_id', org).maybeSingle())
+  ]);
+  S.screens = res[0] ? res[0].data : []; S.slides = res[1] ? res[1].data : [];
+  S.notices = res[2] ? res[2].data : []; S.ticker = res[3] ? res[3].data : [];
+  S.settings = res[4] && res[4].data;
+  if (!S.settings) toast('Configurações da organização não encontradas. Rode o schema.sql de novo.', true);
+  S.scope = 'all';
+}
+function renderHeader() {
+  $('#userEmail').textContent = S.user ? S.user.email : '';
+  var sel = $('#orgSelect');
+  if (S.orgs.length > 1) {
+    sel.classList.remove('hidden'); $('#orgTitle').textContent = '';
+    sel.innerHTML = S.orgs.map(function (o) { return '<option value="' + esc(o.id) + '"' + (o.id === S.org.id ? ' selected' : '') + '>' + esc(o.name) + '</option>'; }).join('');
+  } else { sel.classList.add('hidden'); $('#orgTitle').textContent = S.org.name; }
+}
+$('#orgSelect').addEventListener('change', async function (e) {
+  S.org = S.orgs.filter(function (o) { return o.id === e.target.value; })[0];
+  try { localStorage.setItem('tv_admin_org', S.org.id); } catch (er) {}
+  await loadAll(); render();
+});
+
+/* ───────── abas ───────── */
+$('#tabs').addEventListener('click', function (e) { var b = e.target.closest('button[data-tab]'); if (b) { S.tab = b.dataset.tab; render(); } });
+function render() {
+  [].forEach.call(document.querySelectorAll('#tabs button'), function (b) { b.classList.toggle('active', b.dataset.tab === S.tab); });
+  var v = { tvs: viewTvs, midia: viewMidia, avisos: viewAvisos, ticker: viewTicker, espera: viewEspera, config: viewConfig }[S.tab];
+  $('#content').innerHTML = v();
+}
+function scopeId() { return S.scope === 'all' ? null : S.scope; }
+function listFor(table) {
+  var arr = { slides: S.slides, notices: S.notices, ticker_items: S.ticker }[table];
+  return arr.filter(function (x) { return (x.screen_id || null) === scopeId(); }).sort(function (a, b) { return (a.sort_order - b.sort_order) || String(a.created_at).localeCompare(String(b.created_at)); });
+}
+function scopeBar(what) {
+  var opts = '<option value="all"' + (S.scope === 'all' ? ' selected' : '') + '>Todas as TVs</option>' + S.screens.map(function (s) { return '<option value="' + esc(s.id) + '"' + (S.scope === s.id ? ' selected' : '') + '>Só: ' + esc(s.name) + '</option>'; }).join('');
+  return '<div class="card"><div class="scope"><strong>' + what + ' de:</strong><select id="scopeSel">' + opts + '</select></div>' +
+    '<div class="muted">Cada TV exibe o que está em “Todas as TVs” <b>mais</b> o que for só dela. Itens com <b>Ativo</b> desmarcado ficam guardados mas não aparecem.</div></div>';
+}
+$('#content').addEventListener('change', function (e) { if (e.target.id === 'scopeSel') { S.scope = e.target.value; render(); } });
+
+/* blocos reutilizáveis de linha */
+function attrs(table, r, field, type) { return 'data-table="' + table + '" data-id="' + esc(r.id) + '" data-field="' + field + '" data-type="' + type + '"'; }
+function schedHtml(table, r) {
+  return '<details class="sched"' + ((r.starts_at || r.ends_at) ? ' open' : '') + '><summary>' + ((r.starts_at || r.ends_at) ? '🗓 Agendado' : 'Agendar') + '</summary>' +
+    '<label>Início <input type="datetime-local" ' + attrs(table, r, 'starts_at', 'date') + ' value="' + toLocalInput(r.starts_at) + '"></label>' +
+    '<label>Fim <input type="datetime-local" ' + attrs(table, r, 'ends_at', 'date') + ' value="' + toLocalInput(r.ends_at) + '"></label></details>';
+}
+function activeHtml(table, r) { return '<label class="chk"><input type="checkbox" ' + attrs(table, r, 'active', 'bool') + (r.active ? ' checked' : '') + '> Ativo</label>'; }
+function moveHtml(table, r) { return '<div class="item-move"><button title="Subir" data-act="move" data-table="' + table + '" data-id="' + esc(r.id) + '" data-dir="-1">▲</button><button title="Descer" data-act="move" data-table="' + table + '" data-id="' + esc(r.id) + '" data-dir="1">▼</button></div>'; }
+function delHtml(table, r) { return '<button class="btn danger sm" data-act="del" data-table="' + table + '" data-id="' + esc(r.id) + '">Remover</button>'; }
+
+/* ═════════════ ABA: TVs ═════════════ */
+function tvListHtml() {
+  if (!S.screens.length) return '<div class="card muted">Nenhuma TV pareada ainda.</div>';
+  return S.screens.map(function (s) {
+    var online = s.last_seen && (Date.now() - Date.parse(s.last_seen)) < 75000;
+    return '<div class="item"><span class="pill ' + (online ? 'on' : 'off') + '">' + (online ? '● online' : '○ offline') + '</span>' +
+      '<div class="item-main"><input ' + attrs('screens', s, 'name', 'text') + ' value="' + esc(s.name) + '" maxlength="80" style="font-weight:700">' +
+      '<div class="muted" style="margin-top:4px">Visto ' + ago(s.last_seen) + (s.player_info ? ' · ' + esc(String(s.player_info).slice(0, 60)) : '') + '</div></div>' +
+      '<button class="btn danger sm" data-act="del" data-table="screens" data-id="' + esc(s.id) + '">Remover TV</button></div>';
+  }).join('');
+}
+function viewTvs() {
+  return '<div class="card"><h3>Adicionar TV</h3>' +
+    '<p class="muted">1) Na TV, abra este endereço no navegador: <code>' + esc(playerUrl()) + '</code><br>2) Ela mostrará um código de 6 dígitos. 3) Digite-o aqui:</p>' +
+    '<div class="row"><input id="pairCode" inputmode="numeric" maxlength="7" placeholder="000 000" style="max-width:150px;font-size:18px;letter-spacing:3px;text-align:center">' +
+    '<input id="pairName" placeholder="Nome da TV (ex.: Recepção)" maxlength="80"><button class="btn" data-act="pair">Parear</button></div></div>' +
+    '<div id="tvList" style="display:flex;flex-direction:column;gap:10px">' + tvListHtml() + '</div>' +
+    '<div class="muted">“Online” = a TV falou com o servidor nos últimos ~75 s. Remover uma TV a devolve à tela de pareamento.</div>';
+}
+setInterval(async function () {
+  if (S.tab !== 'tvs' || !S.org || document.hidden) return;
+  var list = $('#tvList'); if (!list || list.contains(document.activeElement)) return;
+  var r = await q(sb.from('screens').select(SCREEN_COLS).eq('org_id', S.org.id).order('created_at'));
+  if (r && S.tab === 'tvs' && $('#tvList') && !$('#tvList').contains(document.activeElement)) { S.screens = r.data; $('#tvList').innerHTML = tvListHtml(); }
+}, 15000);
+
+/* ═════════════ ABA: MÍDIA ═════════════ */
+function slideRow(r) {
+  var url = pubUrl(r.storage_path);
+  var thumb = r.type === 'video' ? '<video src="' + esc(url) + '#t=0.5" preload="metadata" muted></video>' : '<img src="' + esc(url) + '" loading="lazy" alt="">';
+  return '<div class="item' + (r.active ? '' : ' off') + '">' + moveHtml('slides', r) + '<div class="thumb">' + thumb + '</div>' +
+    '<div class="item-main"><div class="item-name">' + esc(r.name) + '</div><div class="muted">' + (r.type === 'video' ? '🎬 Vídeo' : '🖼 Imagem') + '</div></div>' +
+    (r.type === 'image' ? '<label class="dur">exibir <input type="number" min="3" max="300" placeholder="' + esc(S.settings.image_seconds) + '" ' + attrs('slides', r, 'duration', 'int') + ' value="' + (r.duration || '') + '"> s</label>' : '<span class="muted">vídeo inteiro</span>') +
+    schedHtml('slides', r) + activeHtml('slides', r) + delHtml('slides', r) + '</div>';
+}
+function viewMidia() {
+  var list = listFor('slides');
+  return scopeBar('Mídias') +
+    '<div style="display:flex;flex-direction:column;gap:10px">' + (list.length ? list.map(slideRow).join('') : '<div class="card muted">Nenhuma mídia neste grupo.</div>') + '</div>' +
+    '<div class="drop" id="drop" data-act="pick"><div style="font-size:30px">📁</div><div><b style="color:var(--ciano)">Clique para adicionar</b> ou arraste arquivos aqui</div>' +
+    '<div class="muted">Imagens: JPG, PNG, GIF, WebP · Vídeos: MP4, WebM · no plano grátis do Supabase o limite é 50 MB por arquivo</div>' +
+    '<div class="progress" id="prog"><div id="progBar"></div></div><div class="muted" id="upStatus" style="margin-top:6px"></div></div>' +
+    '<input type="file" id="fileInput" multiple accept="image/jpeg,image/png,image/gif,image/webp,video/mp4,video/webm" class="hidden">';
+}
+async function uploadFiles(files) {
+  var valid = files.filter(function (f) { return /^(image\/(jpeg|png|gif|webp)|video\/(mp4|webm))$/.test(f.type); });
+  if (!valid.length) return toast('Nenhum arquivo válido (use JPG, PNG, GIF, WebP, MP4 ou WebM).', true);
+  var prog = $('#prog'), bar = $('#progBar'), st = $('#upStatus');
+  prog.style.display = 'block'; bar.style.width = '0%';
+  var maxOrder = listFor('slides').reduce(function (m, x) { return Math.max(m, x.sort_order); }, -1);
+  var ok = 0, fails = [];
+  for (var i = 0; i < valid.length; i++) {
+    var f = valid[i];
+    st.textContent = 'Enviando ' + (i + 1) + ' de ' + valid.length + ': ' + f.name + '…';
+    var path = S.org.id + '/' + uid() + '-' + safeName(f.name);
+    var up = await sb.storage.from(BUCKET).upload(path, f, { contentType: f.type, cacheControl: '31536000', upsert: false });
+    if (up.error) { fails.push(f.name + ' (' + up.error.message + ')'); }
+    else {
+      var ins = await q(sb.from('slides').insert({ org_id: S.org.id, screen_id: scopeId(), type: f.type.indexOf('video/') === 0 ? 'video' : 'image', name: f.name, storage_path: path, sort_order: ++maxOrder }).select().single());
+      if (ins && ins.data) { S.slides.push(ins.data); ok++; }
+      else { await sb.storage.from(BUCKET).remove([path]); fails.push(f.name); }
+    }
+    bar.style.width = Math.round((i + 1) / valid.length * 100) + '%';
+  }
+  if (S.tab === 'midia') render();
+  if (ok) toast('✓ ' + ok + ' arquivo(s) publicado(s)');
+  if (fails.length) { toast('Falhou: ' + fails.join('; '), true); }
+}
+
+/* ═════════════ ABA: AVISOS ═════════════ */
+function noticeRow(r) {
+  var opts = [['ok', '✅ OK'], ['info', '🔵 Info'], ['warn', '⚠️ Atenção'], ['alert', '🔴 Alerta']].map(function (o) { return '<option value="' + o[0] + '"' + (r.badge === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('');
+  return '<div class="item' + (r.active ? '' : ' off') + '">' + moveHtml('notices', r) +
+    '<div class="notice-grid"><select ' + attrs('notices', r, 'badge', 'text') + '>' + opts + '</select>' +
+    '<input ' + attrs('notices', r, 'label', 'text') + ' value="' + esc(r.label) + '" maxlength="40" placeholder="Título (ex.: Prioridade)">' +
+    '<textarea class="full" ' + attrs('notices', r, 'text', 'text') + ' maxlength="600" placeholder="Texto do aviso">' + esc(r.text) + '</textarea></div>' +
+    '<div style="display:flex;flex-direction:column;gap:8px">' + schedHtml('notices', r) + activeHtml('notices', r) + delHtml('notices', r) + '</div></div>';
+}
+function viewAvisos() {
+  var list = listFor('notices');
+  return scopeBar('Avisos') + '<div style="display:flex;flex-direction:column;gap:10px">' + (list.length ? list.map(noticeRow).join('') : '<div class="card muted">Nenhum aviso neste grupo.</div>') + '</div>' +
+    '<button class="btn sec" data-act="add-notice">+ Adicionar aviso</button>';
+}
+
+/* ═════════════ ABA: TICKER ═════════════ */
+function tickerRow(r) {
+  return '<div class="item' + (r.active ? '' : ' off') + '">' + moveHtml('ticker_items', r) +
+    '<input class="item-main" ' + attrs('ticker_items', r, 'text', 'text') + ' value="' + esc(r.text) + '" maxlength="300" placeholder="Texto que corre na faixa branca">' +
+    schedHtml('ticker_items', r) + activeHtml('ticker_items', r) + delHtml('ticker_items', r) + '</div>';
+}
+function viewTicker() {
+  var list = listFor('ticker_items');
+  return scopeBar('Textos da faixa') + '<div style="display:flex;flex-direction:column;gap:10px">' + (list.length ? list.map(tickerRow).join('') : '<div class="card muted">Nenhum texto neste grupo.</div>') + '</div>' +
+    '<button class="btn sec" data-act="add-ticker">+ Adicionar texto</button>';
+}
+
+/* ═════════════ ABA: ESPERA E EMERGÊNCIA ═════════════ */
+function emergencyEffective() {
+  var s = S.settings; if (!s.emergency_active) return false;
+  if (s.emergency_expire_min > 0 && s.emergency_at && Date.now() > Date.parse(s.emergency_at) + s.emergency_expire_min * 60000) return false;
+  return true;
+}
+function viewEspera() {
+  var s = S.settings, stale = !s.wait_updated_at || (Date.now() - Date.parse(s.wait_updated_at)) > s.wait_stale_hours * 3600e3;
+  var cells = (s.wait || []).map(function (w, i) {
+    return '<div class="wait-cell"><div><span class="dot" style="background:' + esc(/^#[0-9a-f]{3,8}$/i.test(w.color) ? w.color : '#fff') + '"></span><b>' + esc(w.label) + '</b> <span class="muted">' + esc(w.sublabel) + '</span></div>' +
+      '<div class="row" style="flex-wrap:nowrap"><input type="number" min="0" max="999" id="wait' + i + '" value="' + (parseInt(w.time, 10) || 0) + '"><span class="muted">min</span></div></div>';
+  }).join('');
+  var eff = emergencyEffective(), expTxt = '';
+  if (eff && s.emergency_expire_min > 0) expTxt = ' · encerra sozinha às ' + new Date(Date.parse(s.emergency_at) + s.emergency_expire_min * 60000).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  var expOpts = [[0, 'Nunca (encerrar manualmente)'], [15, '15 minutos'], [30, '30 minutos'], [60, '1 hora'], [120, '2 horas'], [240, '4 horas']].map(function (o) { return '<option value="' + o[0] + '"' + (s.emergency_expire_min === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('');
+  return '<div class="card"><h3>Tempos de espera por prioridade</h3>' +
+    '<label class="switch"><input type="checkbox" id="waitEnabled"' + (s.wait_enabled ? ' checked' : '') + ' data-act="wait-toggle"> Exibir os tempos de espera na TV</label>' +
+    '<div class="wait-grid">' + cells + '</div>' +
+    '<div class="row"><button class="btn" data-act="save-wait">Salvar tempos</button><button class="btn sec" data-act="confirm-wait">✓ Continuam corretos (renovar horário)</button></div>' +
+    '<div class="muted">Último horário registrado: <b>' + fmtWhen(s.wait_updated_at) + '</b> ' + (stale ? '<span class="pill warn">desatualizado — a TV está mostrando “—”</span>' : '<span class="pill on">em dia</span>') +
+    '<br>Passadas ' + s.wait_stale_hours + ' h sem atualização, a TV esconde os valores para não informar dado antigo (ajuste em Configurações).</div></div>' +
+    '<div class="card emerg"><h3>🚨 Ocorrência emergencial</h3>' +
+    '<div class="muted">' + (eff ? '<span class="pill off">ATIVA nas TVs' + esc(expTxt) + '</span>' : '<span class="pill on">desativada</span>') + '</div>' +
+    '<label class="switch"><input type="checkbox" id="emActive"' + (eff ? ' checked' : '') + '> Ativar alerta nas TVs</label>' +
+    '<div><div class="muted">Mensagem exibida na faixa vermelha</div><textarea id="emMsg" maxlength="600" placeholder="Ex.: Estamos atendendo uma ocorrência de grande porte. Agradecemos sua compreensão.">' + esc(s.emergency_msg) + '</textarea></div>' +
+    '<div><div class="muted">Encerrar automaticamente após</div><select id="emExpire">' + expOpts + '</select></div>' +
+    '<div class="row"><button class="btn red" data-act="save-emergency">Aplicar</button></div>' +
+    '<div class="muted">As TVs recebem em até ~20 segundos.</div></div>';
+}
+
+/* ═════════════ ABA: CONFIGURAÇÕES ═════════════ */
+function viewConfig() {
+  var s = S.settings;
+  return '<div class="card"><h3>Marca</h3><div class="grid2">' +
+    '<div><div class="muted">Nome exibido</div><input id="cBrand" value="' + esc(s.brand_name) + '" maxlength="80"></div>' +
+    '<div><div class="muted">Texto do rodapé da barra lateral</div><input id="cFooter" value="' + esc(s.footer_text) + '" maxlength="80"></div></div>' +
+    '<div><div class="muted">Logo (PNG com fundo transparente, de preferência branca — fica sobre fundo azul escuro)</div>' +
+    (s.logo_path ? '<img class="logo-prev" src="' + esc(pubUrl(s.logo_path)) + '" alt="logo"><br>' : '<div class="muted">Sem logo — a TV mostra o nome em texto.</div>') +
+    '<div class="row" style="margin-top:6px"><button class="btn sec sm" data-act="pick-logo">Enviar logo</button>' + (s.logo_path ? '<button class="btn danger sm" data-act="remove-logo">Remover logo</button>' : '') + '</div>' +
+    '<input type="file" id="logoInput" accept="image/png,image/jpeg,image/webp" class="hidden"></div></div>' +
+    '<div class="card"><h3>Clima</h3><label class="switch"><input type="checkbox" id="cWeather"' + (s.weather_enabled ? ' checked' : '') + '> Mostrar clima na barra lateral</label>' +
+    '<div class="grid2"><div><div class="muted">Latitude</div><input id="cLat" type="number" step="0.0001" value="' + esc(s.weather_lat) + '"></div>' +
+    '<div><div class="muted">Longitude</div><input id="cLon" type="number" step="0.0001" value="' + esc(s.weather_lon) + '"></div></div>' +
+    '<div><div class="muted">Fuso horário (ex.: America/Sao_Paulo)</div><input id="cTz" value="' + esc(s.weather_tz) + '"></div></div>' +
+    '<div class="card"><h3>Tempos de exibição</h3><div class="grid2">' +
+    '<div><div class="muted">Segundos por imagem (padrão)</div><input id="cImg" type="number" min="3" max="300" value="' + esc(s.image_seconds) + '"></div>' +
+    '<div><div class="muted">Segundos por aviso</div><input id="cNot" type="number" min="3" max="120" value="' + esc(s.notice_seconds) + '"></div>' +
+    '<div><div class="muted">Tempos de espera ficam “desatualizados” após (horas)</div><input id="cStale" type="number" min="1" max="48" value="' + esc(s.wait_stale_hours) + '"></div></div></div>' +
+    '<div class="row"><button class="btn" data-act="save-config">Salvar configurações</button></div>' +
+    '<div class="card"><h3>Conta</h3><div class="row"><input id="pwNew" type="password" placeholder="Nova senha (mín. 6)" minlength="6" autocomplete="new-password" style="max-width:260px"><button class="btn sec" data-act="change-pw">Alterar senha</button></div></div>';
+}
+
+/* ───────── ações (clique) ───────── */
+$('#content').addEventListener('click', async function (e) {
+  var el = e.target.closest('[data-act]'); if (!el) return;
+  var act = el.dataset.act;
+  if (act === 'pick') { if (e.target.id !== 'fileInput') $('#fileInput').click(); return; }
+  if (act === 'wait-toggle') return;   // tratado em 'change'
+  if (act === 'pair') return doPair();
+  if (act === 'add-notice') return addRow('notices', { badge: 'info', label: 'Novo', text: '' });
+  if (act === 'add-ticker') return addRow('ticker_items', { text: '' });
+  if (act === 'del') return doDelete(el.dataset.table, el.dataset.id);
+  if (act === 'move') return doMove(el.dataset.table, el.dataset.id, parseInt(el.dataset.dir, 10));
+  if (act === 'save-wait') return saveWait(false);
+  if (act === 'confirm-wait') return saveWait(true);
+  if (act === 'save-emergency') return saveEmergency();
+  if (act === 'save-config') return saveConfig();
+  if (act === 'pick-logo') return $('#logoInput').click();
+  if (act === 'remove-logo') return removeLogo();
+  if (act === 'change-pw') return changePw();
+});
+document.addEventListener('click', function (e) { var el = e.target.closest('[data-act="signout"]'); if (el) sb.auth.signOut(); });
+
+$('#content').addEventListener('change', function (e) {
+  var el = e.target;
+  if (el.id === 'fileInput') { uploadFiles([].slice.call(el.files)); el.value = ''; return; }
+  if (el.id === 'logoInput') { uploadLogo(el.files[0]); el.value = ''; return; }
+  if (el.id === 'waitEnabled') { saveSettings({ wait_enabled: el.checked }, 'Salvo'); return; }
+  if (el.dataset && el.dataset.table) autosave(el);
+});
+$('#content').addEventListener('dragover', function (e) { var d = e.target.closest('#drop'); if (d) { e.preventDefault(); d.classList.add('over'); } });
+$('#content').addEventListener('dragleave', function (e) { var d = e.target.closest('#drop'); if (d) d.classList.remove('over'); });
+$('#content').addEventListener('drop', function (e) { var d = e.target.closest('#drop'); if (d) { e.preventDefault(); d.classList.remove('over'); uploadFiles([].slice.call(e.dataTransfer.files)); } });
+
+/* ───────── salvar campo a campo ───────── */
+function arrFor(table) { return { slides: S.slides, notices: S.notices, ticker_items: S.ticker, screens: S.screens }[table]; }
+function readVal(el, type) {
+  if (type === 'bool') return el.checked;
+  if (type === 'int') { if (el.value === '') return null; var n = parseInt(el.value, 10); return isNaN(n) ? undefined : n; }
+  if (type === 'date') return el.value ? new Date(el.value).toISOString() : null;
+  return el.value;
+}
+async function autosave(el) {
+  var table = el.dataset.table, id = el.dataset.id, field = el.dataset.field, type = el.dataset.type || 'text';
+  var row = arrFor(table).filter(function (x) { return x.id === id; })[0]; if (!row) return;
+  var val = readVal(el, type);
+  if (val === undefined) { el.value = row[field] == null ? '' : row[field]; return; }
+  if (table === 'screens' && field === 'name' && !String(val).trim()) { el.value = row.name; return; }
+  if (field === 'duration' && val !== null && (val < 3 || val > 300)) { toast('Use entre 3 e 300 segundos.', true); el.value = row.duration || ''; return; }
+  var r = await q(sb.from(table).update((function (o) { o[field] = val; return o; })({})).eq('id', id));
+  if (!r) { if (type === 'bool') el.checked = !!row[field]; else el.value = row[field] == null ? '' : (type === 'date' ? toLocalInput(row[field]) : row[field]); return; }
+  row[field] = val; el.classList.add('flash'); setTimeout(function () { el.classList.remove('flash'); }, 700);
+  if (field === 'active' || field === 'starts_at' || field === 'ends_at') render();
+  toast('Salvo');
+}
+async function saveSettings(patch, okMsg) {
+  patch.updated_at = new Date().toISOString();
+  var r = await q(sb.from('org_settings').update(patch).eq('org_id', S.org.id));
+  if (!r) return false;
+  Object.keys(patch).forEach(function (k) { S.settings[k] = patch[k]; });
+  if (okMsg) toast('✓ ' + okMsg); return true;
+}
+
+/* ───────── ações específicas ───────── */
+async function doPair() {
+  var code = ($('#pairCode').value || '').replace(/\D/g, ''), name = $('#pairName').value.trim();
+  if (code.length !== 6) return toast('Digite o código de 6 dígitos que aparece na TV.', true);
+  var r = await q(sb.rpc('claim_screen', { p_code: code, p_org: S.org.id, p_name: name || 'TV' }));
+  if (!r) return;
+  var sc = await q(sb.from('screens').select(SCREEN_COLS).eq('org_id', S.org.id).order('created_at'));
+  if (sc) S.screens = sc.data;
+  toast('✓ TV pareada! Ela começa a exibir em alguns segundos.'); render();
+}
+async function addRow(table, defaults) {
+  var list = listFor(table), max = list.reduce(function (m, x) { return Math.max(m, x.sort_order); }, -1);
+  var row = { org_id: S.org.id, screen_id: scopeId(), sort_order: max + 1 };
+  Object.keys(defaults).forEach(function (k) { row[k] = defaults[k]; });
+  var r = await q(sb.from(table).insert(row).select().single());
+  if (r && r.data) { arrFor(table).push(r.data); render(); }
+}
+async function doDelete(table, id) {
+  var row = arrFor(table).filter(function (x) { return x.id === id; })[0]; if (!row) return;
+  var msg = table === 'screens' ? 'Remover a TV “' + row.name + '”? Ela voltará para a tela de pareamento e seus itens exclusivos serão apagados.' : table === 'slides' ? 'Remover “' + row.name + '” da playlist?' : 'Remover este item?';
+  if (!confirm(msg)) return;
+  var r = await q(sb.from(table).delete().eq('id', id)); if (!r) return;
+  if (table === 'slides') { try { await sb.storage.from(BUCKET).remove([row.storage_path]); } catch (e) {} }
+  var arr = arrFor(table); arr.splice(arr.indexOf(row), 1);
+  if (table === 'screens') await loadAll();   // os itens exclusivos da TV foram apagados em cascata pelo banco
+  render(); toast('Removido');
+}
+async function doMove(table, id, dir) {
+  var list = listFor(table), i = list.findIndex(function (x) { return x.id === id; }), j = i + dir;
+  if (i < 0 || j < 0 || j >= list.length) return;
+  var t = list[i]; list[i] = list[j]; list[j] = t;
+  var jobs = [];
+  list.forEach(function (x, idx) { if (x.sort_order !== idx) { x.sort_order = idx; jobs.push(q(sb.from(table).update({ sort_order: idx }).eq('id', x.id))); } });
+  await Promise.all(jobs); render();
+}
+async function saveWait(onlyConfirm) {
+  var s = S.settings, wait = JSON.parse(JSON.stringify(s.wait || [])), changed = false;
+  if (!onlyConfirm) wait.forEach(function (w, i) {
+    var v = Math.max(0, Math.min(999, parseInt($('#wait' + i).value, 10) || 0));
+    if (v !== (parseInt(w.time, 10) || 0)) changed = true; w.time = v;
+  });
+  var patch = { wait: wait };
+  if (onlyConfirm || changed || !s.wait_updated_at) patch.wait_updated_at = new Date().toISOString();
+  if (await saveSettings(patch, onlyConfirm ? 'Horário renovado' : 'Tempos salvos')) render();
+}
+async function saveEmergency() {
+  var s = S.settings, active = $('#emActive').checked, wasEff = emergencyEffective();
+  var patch = { emergency_active: active, emergency_msg: $('#emMsg').value, emergency_expire_min: parseInt($('#emExpire').value, 10) || 0 };
+  if (active && !wasEff) patch.emergency_at = new Date().toISOString();
+  if (active && !patch.emergency_msg.trim() && !confirm('Ativar o alerta sem mensagem de contexto?')) return;
+  if (await saveSettings(patch, active ? 'Alerta ATIVADO nas TVs' : 'Alerta desativado')) render();
+}
+async function saveConfig() {
+  var img = parseInt($('#cImg').value, 10), nt = parseInt($('#cNot').value, 10), st = parseInt($('#cStale').value, 10);
+  var lat = parseFloat($('#cLat').value), lon = parseFloat($('#cLon').value);
+  if (!(img >= 3 && img <= 300) || !(nt >= 3 && nt <= 120) || !(st >= 1 && st <= 48)) return toast('Confira os tempos: imagem 3–300 s, aviso 3–120 s, desatualização 1–48 h.', true);
+  if (isNaN(lat) || isNaN(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) return toast('Latitude/longitude inválidas.', true);
+  await saveSettings({ brand_name: $('#cBrand').value.trim(), footer_text: $('#cFooter').value.trim(), weather_enabled: $('#cWeather').checked, weather_lat: lat, weather_lon: lon, weather_tz: $('#cTz').value.trim() || 'America/Sao_Paulo', image_seconds: img, notice_seconds: nt, wait_stale_hours: st }, 'Configurações salvas');
+}
+async function uploadLogo(file) {
+  if (!file) return;
+  var path = S.org.id + '/brand/' + uid() + '-' + safeName(file.name);
+  var up = await sb.storage.from(BUCKET).upload(path, file, { contentType: file.type, cacheControl: '31536000', upsert: false });
+  if (up.error) return toast('Erro ao enviar logo: ' + up.error.message, true);
+  var old = S.settings.logo_path;
+  if (await saveSettings({ logo_path: path }, 'Logo atualizada')) { if (old) { try { await sb.storage.from(BUCKET).remove([old]); } catch (e) {} } render(); }
+}
+async function removeLogo() {
+  var old = S.settings.logo_path; if (!old || !confirm('Remover a logo?')) return;
+  if (await saveSettings({ logo_path: null }, 'Logo removida')) { try { await sb.storage.from(BUCKET).remove([old]); } catch (e) {} render(); }
+}
+async function changePw() {
+  var pw = $('#pwNew').value; if (pw.length < 6) return toast('A senha precisa ter ao menos 6 caracteres.', true);
+  var r = await sb.auth.updateUser({ password: pw });
+  if (r.error) return toast(r.error.message, true);
+  $('#pwNew').value = ''; toast('✓ Senha alterada');
+}
+
+/* ───────── início ───────── */
+(async function init() {
+  try {
+    var r = await sb.auth.getSession();
+    if (r.data && r.data.session) { S.user = r.data.session.user; await boot(); } else if (!/type=recovery/.test(location.hash)) showAuth();
+  } catch (e) { console.error(e); showAuth(); authMsg('Não foi possível conectar ao servidor.', true); }
+})();
+})();
+</script>
+</body>
+</html>

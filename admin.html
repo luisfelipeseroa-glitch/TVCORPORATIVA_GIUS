@@ -515,8 +515,12 @@ function pushPreview() {
   f.contentWindow.postMessage({ type: 'tv-preview', payload: previewPayload() }, '*');
 }
 function fitPreview() {
-  var w = $('#prevWrap'), f = $('#prevFrame');
-  if (w && f) f.style.transform = 'scale(' + (w.clientWidth / 1920) + ')';
+  var w = $('#prevWrap'), f = $('#prevFrame'); if (!w || !f) return;
+  var vert = S.settings && S.settings.layout === 'vertical', fw = vert ? 1080 : 1920, fh = vert ? 1920 : 1080;
+  var maxW = vert ? Math.min(w.clientWidth, 360) : w.clientWidth, sc = maxW / fw;
+  f.style.width = fw + 'px'; f.style.height = fh + 'px';
+  f.style.transform = 'scale(' + sc + ')';
+  w.style.height = Math.round(fh * sc) + 'px'; w.style.maxWidth = vert ? '360px' : ''; w.style.margin = vert ? '0 auto' : '';
   if (f) f.addEventListener('load', pushPreview);
 }
 window.addEventListener('resize', function () { if (S.tab === 'previa') fitPreview(); });
@@ -535,6 +539,12 @@ function viewConfig() {
     (s.logo_path ? '<img class="logo-prev" src="' + esc(pubUrl(s.logo_path)) + '" alt="logo"><br>' : '<div class="muted">Sem logo — a TV mostra o nome em texto.</div>') +
     '<div class="row" style="margin-top:6px"><button class="btn sec sm" data-act="pick-logo">Enviar logo</button>' + (s.logo_path ? '<button class="btn danger sm" data-act="remove-logo">Remover logo</button>' : '') + '</div>' +
     '<input type="file" id="logoInput" accept="image/png,image/jpeg,image/webp" class="hidden"></div></div>' +
+    '<div class="card"><h3>Aparência</h3><div class="grid2">' +
+    '<div><div class="muted">Cor principal</div><input id="cPrimary" type="color" value="' + esc(s.theme_primary || '#0b4fa1') + '" style="height:42px;padding:3px"></div>' +
+    '<div><div class="muted">Cor de destaque</div><input id="cAccent" type="color" value="' + esc(s.theme_accent || '#00d4ff') + '" style="height:42px;padding:3px"></div>' +
+    '<div><div class="muted">Orientação da TV</div><select id="cLayout"><option value="horizontal"' + (s.layout !== 'vertical' ? ' selected' : '') + '>Horizontal (deitada, 16:9)</option><option value="vertical"' + (s.layout === 'vertical' ? ' selected' : '') + '>Vertical (em pé, 9:16)</option></select></div></div>' +
+    '<div class="row" style="margin-top:8px"><button class="btn sec sm" data-act="theme-reset">Voltar às cores padrão</button></div>' +
+    '<div class="muted" style="margin-top:6px">Vale para todas as TVs da organização. Veja o resultado na aba Prévia.</div></div>' +
     '<div class="card"><h3>Clima</h3><label class="switch"><input type="checkbox" id="cWeather"' + (s.weather_enabled ? ' checked' : '') + '> Mostrar clima na barra lateral</label>' +
     '<div class="grid2"><div><div class="muted">Latitude</div><input id="cLat" type="number" step="0.0001" value="' + esc(s.weather_lat) + '"></div>' +
     '<div><div class="muted">Longitude</div><input id="cLon" type="number" step="0.0001" value="' + esc(s.weather_lon) + '"></div></div>' +
@@ -564,6 +574,7 @@ $('#content').addEventListener('click', async function (e) {
   if (act === 'save-config') return saveConfig();
   if (act === 'days-preset') return saveDays(el.dataset.table, el.dataset.id, { weekdays: [1, 2, 3, 4, 5], weekend: [0, 6], all: [] }[el.dataset.preset]);
   if (act === 'sim-now') { S.sim = ''; var si = $('#simTime'); if (si) si.value = ''; return pushPreview(); }
+  if (act === 'theme-reset') { $('#cPrimary').value = '#0b4fa1'; $('#cAccent').value = '#00d4ff'; return toast('Cores padrão selecionadas — clique em Salvar configurações.'); }
   if (act === 'pick-logo') return $('#logoInput').click();
   if (act === 'remove-logo') return removeLogo();
   if (act === 'change-pw') return changePw();
@@ -686,7 +697,7 @@ async function saveConfig() {
   var lat = parseFloat($('#cLat').value), lon = parseFloat($('#cLon').value);
   if (!(img >= 3 && img <= 300) || !(nt >= 3 && nt <= 120) || !(st >= 1 && st <= 48)) return toast('Confira os tempos: imagem 3–300 s, aviso 3–120 s, desatualização 1–48 h.', true);
   if (isNaN(lat) || isNaN(lon) || Math.abs(lat) > 90 || Math.abs(lon) > 180) return toast('Latitude/longitude inválidas.', true);
-  await saveSettings({ brand_name: $('#cBrand').value.trim(), footer_text: $('#cFooter').value.trim(), weather_enabled: $('#cWeather').checked, weather_lat: lat, weather_lon: lon, weather_tz: $('#cTz').value.trim() || 'America/Sao_Paulo', image_seconds: img, notice_seconds: nt, wait_stale_hours: st }, 'Configurações salvas');
+  await saveSettings({ brand_name: $('#cBrand').value.trim(), footer_text: $('#cFooter').value.trim(), weather_enabled: $('#cWeather').checked, weather_lat: lat, weather_lon: lon, weather_tz: $('#cTz').value.trim() || 'America/Sao_Paulo', theme_primary: $('#cPrimary').value, theme_accent: $('#cAccent').value, layout: $('#cLayout').value, image_seconds: img, notice_seconds: nt, wait_stale_hours: st }, 'Configurações salvas');
 }
 async function uploadLogo(file) {
   if (!file) return;

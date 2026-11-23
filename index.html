@@ -1,0 +1,1219 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TV Corporativa</title>
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --azul: #0b4fa1; --azul-escuro: #061d3a; --azul-claro: #00d4ff;
+  --verde: #00e57a; --amarelo: #ffd600; --vermelho: #ff3b3b;
+  --glass: rgba(255,255,255,0.07); --glass-border: rgba(255,255,255,0.12);
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body, html { height: 100%; width: 100%; font-family: 'Montserrat', 'Segoe UI', Roboto, Arial, sans-serif; background: #000; overflow: hidden; color: #fff; }
+body.idle { cursor: none; }
+
+/* ── LAYOUT ── */
+.app {
+  display: grid;
+  grid-template-columns: 22% 78%;
+  grid-template-rows: minmax(0,1fr) auto 13vh;
+  height: 100vh;
+  background: radial-gradient(ellipse at 30% 50%, #0b2d5e 0%, #000 70%);
+}
+
+/* ── SIDEBAR ── */
+.sidebar {
+  grid-row: span 3;
+  background: linear-gradient(170deg, #0d5bbf 0%, #061d3a 60%, #000 100%);
+  border-right: 1px solid rgba(0,212,255,0.25);
+  display: flex; flex-direction: column; align-items: center;
+  padding: 1.8vw 1.2vw; gap: 1.4vh;
+  position: relative; z-index: 10; min-height: 0;
+  box-shadow: 8px 0 40px rgba(0,0,0,0.6);
+}
+.sidebar::after { content: ''; position: absolute; top: 0; right: 0; bottom: 0; width: 1px; background: linear-gradient(to bottom, transparent, var(--azul-claro), transparent); opacity: 0.4; }
+.logo { width: 75%; height: auto; max-height: 22vh; object-fit: contain; filter: brightness(1.1); margin-bottom: 0.5vh; }
+.logo-text { font-weight: 900; font-size: clamp(18px,1.6vw,48px); letter-spacing: 3px; text-align: center; color: #fff; }
+.divider { width: 80%; height: 1px; background: linear-gradient(to right, transparent, rgba(0,212,255,0.4), transparent); flex-shrink: 0; }
+.weather-card { background: var(--glass); border: 1px solid var(--glass-border); border-radius: 16px; padding: 0.9vw 0.7vw; width: 100%; text-align: center; backdrop-filter: blur(10px); flex-shrink: 0; }
+.weather-icon { font-size: clamp(32px,2.8vw,84px); display: block; margin-bottom: 0.3vh; }
+.weather-temp { font-size: clamp(26px,2.2vw,66px); font-weight: 900; color: var(--azul-claro); display: block; }
+.weather-desc { font-size: clamp(12px,0.75vw,22px); font-weight: 500; color: rgba(255,255,255,0.65); text-transform: uppercase; letter-spacing: 1.5px; margin-top: 0.3vh; display: block; }
+.notices-box { background: rgba(0,0,0,0.25); border: 1px solid rgba(0,212,255,0.2); border-radius: 20px; padding: 1vw 0.9vw; width: 100%; flex: 1; display: flex; flex-direction: column; overflow: hidden; min-height: 0; }
+.notices-header { font-size: clamp(12px,0.75vw,22px); font-weight: 700; color: var(--azul-claro); text-transform: uppercase; letter-spacing: 3px; text-align: center; padding-bottom: 0.8vh; border-bottom: 1px solid rgba(0,212,255,0.15); margin-bottom: 1vh; flex-shrink: 0; }
+.notices-content { position: relative; flex: 1; display: flex; align-items: center; justify-content: center; min-height: 0; }
+.notice-item { position: absolute; width: 100%; opacity: 0; transform: translateY(12px); transition: opacity 0.8s ease, transform 0.8s ease; font-size: clamp(16px,1.2vw,38px); line-height: 1.55; text-align: center; padding: 0 0.3vw; pointer-events: none; overflow-wrap: anywhere; }
+.notice-item.active { opacity: 1; transform: translateY(0); pointer-events: auto; }
+.notice-item .badge { display: inline-block; font-size: clamp(11px,0.7vw,18px); font-weight: 700; text-transform: uppercase; letter-spacing: 2px; padding: 2px 10px; border-radius: 20px; margin-bottom: 0.6vh; }
+.badge-info  { background: rgba(0,212,255,0.15); color: var(--azul-claro); border: 1px solid rgba(0,212,255,0.3); }
+.badge-warn  { background: rgba(255,214,0,0.15);  color: var(--amarelo);   border: 1px solid rgba(255,214,0,0.3); }
+.badge-alert { background: rgba(255,59,59,0.15);  color: var(--vermelho);  border: 1px solid rgba(255,59,59,0.3); }
+.badge-ok    { background: rgba(0,229,122,0.12);  color: var(--verde);     border: 1px solid rgba(0,229,122,0.3); }
+.notice-dots { display: flex; justify-content: center; gap: 6px; padding-top: 1vh; flex-shrink: 0; }
+.notice-dot { width: 5px; height: 5px; border-radius: 50%; background: rgba(255,255,255,0.2); transition: background 0.4s, width 0.4s; }
+.notice-dot.active { background: var(--azul-claro); width: 14px; border-radius: 3px; }
+.sidebar-footer { font-size: clamp(10px,0.6vw,16px); letter-spacing: 1.5px; opacity: 0.4; text-align: center; flex-shrink: 0; }
+
+/* ── MAIN ── */
+.main { background: transparent; display: flex; justify-content: center; align-items: center; overflow: hidden; position: relative; min-height: 0; }
+.slide-counter { position: absolute; top: 1.2vh; right: 1.2vw; font-size: clamp(11px,0.7vw,18px); font-weight: 700; color: rgba(255,255,255,0.35); letter-spacing: 2px; z-index: 5; }
+#display { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; transition: opacity 0.7s ease; }
+.media-image { max-width: 94%; max-height: 94%; object-fit: contain; border-radius: 12px; animation: kenBurns 12s ease-in-out; }
+@keyframes kenBurns { from { transform: scale(1.04); } to { transform: scale(1); } }
+.media-video { width: 92%; max-height: 94%; object-fit: contain; border-radius: 12px; }
+.empty-state { text-align: center; opacity: 0.8; display: flex; flex-direction: column; align-items: center; gap: 2vh; }
+.empty-state img { max-width: 30vw; max-height: 30vh; object-fit: contain; }
+.empty-state .logo-text { font-size: clamp(24px,3vw,90px); }
+.empty-state small { font-size: clamp(12px,1vw,26px); color: rgba(255,255,255,0.5); }
+
+/* ── FAIXA DE STATUS ── */
+.status-bar {
+  grid-column: 2;
+  background: #0a1828;
+  border-top: 1px solid rgba(0,212,255,0.15);
+  border-bottom: 1px solid rgba(0,212,255,0.1);
+  display: flex; align-items: stretch;
+  min-height: 0; overflow: hidden;
+  transition: background 0.5s ease, border-color 0.5s ease;
+}
+.status-bar.emergency { background: #1a0505; border-color: var(--vermelho); animation: emergencyPulse 1.2s ease-in-out infinite; }
+@keyframes emergencyPulse {
+  0%, 100% { background: #1a0505; border-color: rgba(255,59,59,0.4); }
+  50%       { background: #2d0808; border-color: rgba(255,59,59,0.9); }
+}
+.emergency-banner { display: none; align-items: center; gap: 1vw; background: var(--vermelho); padding: 0 1.5vw; flex-shrink: 0; min-width: 0; }
+.status-bar.emergency .emergency-banner { display: flex; }
+.emergency-icon { font-size: clamp(24px,1.8vw,56px); animation: iconPulse 0.8s ease-in-out infinite; }
+@keyframes iconPulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.2)} }
+.emergency-label { font-size: clamp(13px,0.85vw,24px); font-weight: 900; letter-spacing: 2px; text-transform: uppercase; line-height: 1.3; white-space: nowrap; }
+.emergency-msg { font-size: clamp(14px,1vw,28px); font-weight: 700; flex: 1; align-items: center; padding: 0 1.2vw; line-height: 1.4; }
+
+.wait-times { display: flex; align-items: stretch; flex: 1; min-width: 0; }
+.wait-item { flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 0.6vh 0.5vw; border-right: 1px solid rgba(255,255,255,0.06); gap: 0.2vh; }
+.wait-priority { font-size: clamp(12px,0.8vw,22px); font-weight: 700; text-transform: uppercase; letter-spacing: 2px; opacity: 0.75; }
+.wait-time { font-size: clamp(22px,2vw,60px); font-weight: 900; line-height: 1; }
+.wait-label { font-size: clamp(11px,0.65vw,18px); opacity: 0.6; text-transform: uppercase; letter-spacing: 1px; text-align: center; }
+.wait-dot { width: 8px; height: 8px; border-radius: 50%; margin-bottom: 0.2vh; flex-shrink: 0; }
+.wait-updated { flex: 0 0 auto; display: flex; align-items: center; justify-content: center; text-align: center; padding: 0 1vw; max-width: 14vw; font-size: clamp(11px,0.7vw,18px); line-height: 1.4; color: rgba(255,255,255,0.65); }
+.wait-updated.stale { color: var(--amarelo); font-weight: 700; }
+.wait-times.is-stale .wait-time { color: rgba(255,255,255,0.35) !important; }
+.wait-times.is-stale .wait-dot { background: rgba(255,255,255,0.3) !important; }
+
+.priority-vermelho .wait-time { color: #ff6b6b; } .priority-vermelho .wait-dot { background: #ff6b6b; }
+.priority-laranja  .wait-time { color: #ffa040; } .priority-laranja  .wait-dot { background: #ffa040; }
+.priority-amarelo  .wait-time { color: var(--amarelo); } .priority-amarelo .wait-dot { background: var(--amarelo); }
+.priority-verde    .wait-time { color: var(--verde); }   .priority-verde   .wait-dot { background: var(--verde); }
+.priority-azul     .wait-time { color: var(--azul-claro); } .priority-azul .wait-dot { background: var(--azul-claro); }
+
+/* ── FOOTER ── */
+.footer { grid-column: 2; background: #fff; display: flex; align-items: center; position: relative; overflow: hidden; }
+.progress-bar { position: absolute; top: 0; left: 0; height: 3px; background: linear-gradient(to right, var(--azul), var(--azul-claro)); width: 0%; z-index: 5; }
+.time-box { background: var(--azul); color: #fff; height: 100%; width: 22%; display: flex; flex-direction: column; justify-content: center; align-items: center; font-weight: 900; clip-path: polygon(0 0, 90% 0, 100% 100%, 0% 100%); flex-shrink: 0; padding-right: 1.5vw; z-index: 2; }
+#clock { font-size: clamp(32px,3.2vw,96px); line-height: 1; color: var(--azul-claro); }
+#date  { font-size: clamp(12px,1vw,30px); color: rgba(255,255,255,0.8); margin-top: 0.3vh; }
+.ticker-wrap { flex: 1; overflow: hidden; background: #f4f4f4; height: 100%; display: flex; align-items: center; }
+.ticker-track { display: flex; align-items: center; white-space: nowrap; animation: ticker 60s linear infinite; will-change: transform; }
+.ticker-item { display: inline-flex; align-items: center; gap: 0.8vw; font-size: clamp(20px,2.2vw,64px); font-weight: 700; color: var(--azul-escuro); padding: 0 3vw; }
+.ticker-sep { width: 6px; height: 6px; border-radius: 50%; background: var(--azul); opacity: 0.3; flex-shrink: 0; }
+@keyframes ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+/* ── GATILHO ADMIN ── */
+#admin-trigger { position: fixed; bottom: 0; left: 0; width: 70px; height: 70px; z-index: 9998; cursor: default; }
+
+/* ── PIN ── */
+#pin-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 10000; align-items: center; justify-content: center; }
+#pin-overlay.open { display: flex; }
+.pin-box { background: #0a1624; border: 1px solid rgba(0,212,255,0.25); border-radius: 16px; padding: 1.6rem; width: 320px; display: flex; flex-direction: column; gap: 1rem; text-align: center; }
+#pinInput { background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.15); border-radius: 10px; color: #fff; font-family: inherit; font-size: 1.4rem; text-align: center; letter-spacing: 8px; padding: 10px; outline: none; }
+#pinInput:focus { border-color: var(--azul-claro); }
+#pinMsg { min-height: 1.2em; font-size: 0.75rem; color: var(--vermelho); }
+.pin-actions { display: flex; gap: 0.6rem; justify-content: center; }
+.pin-actions .btn-save { flex: 1; }
+
+/* ── OVERLAY ADMIN ── */
+#admin-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.82); backdrop-filter: blur(8px); z-index: 9999; align-items: center; justify-content: center; }
+#admin-overlay.open { display: flex; }
+#admin-panel { background: #0a1624; border: 1px solid rgba(0,212,255,0.25); border-radius: 20px; width: min(760px, 96vw); max-height: 92vh; display: flex; flex-direction: column; box-shadow: 0 0 80px rgba(0,212,255,0.1); overflow: hidden; }
+.ap-header { display: flex; justify-content: space-between; align-items: center; padding: 1.4rem 1.8rem; border-bottom: 1px solid rgba(255,255,255,0.06); flex-shrink: 0; }
+.ap-title { font-size: 0.85rem; font-weight: 700; color: var(--azul-claro); letter-spacing: 3px; text-transform: uppercase; }
+.ap-close { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: rgba(255,255,255,0.6); border-radius: 8px; padding: 6px 16px; font-family: inherit; font-size: 0.78rem; cursor: pointer; transition: all 0.2s; }
+.ap-close:hover { background: rgba(255,59,59,0.15); border-color: var(--vermelho); color: var(--vermelho); }
+.ap-tabs { display: flex; border-bottom: 1px solid rgba(255,255,255,0.06); flex-shrink: 0; }
+.ap-tab { flex: 1; padding: 0.85rem 0.3rem; text-align: center; font-size: 0.68rem; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; cursor: pointer; color: rgba(255,255,255,0.4); border-bottom: 2px solid transparent; transition: all 0.2s; }
+.ap-tab:hover { color: rgba(255,255,255,0.7); }
+.ap-tab.active { color: var(--azul-claro); border-bottom-color: var(--azul-claro); }
+.ap-body { flex: 1; overflow-y: auto; padding: 1.5rem 1.8rem; display: flex; flex-direction: column; gap: 1.2rem; min-height: 0; }
+.ap-tab-content { display: none; flex-direction: column; gap: 1.2rem; }
+.ap-tab-content.active { display: flex; }
+.ap-section-title { font-size: 0.6rem; font-weight: 700; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 3px; margin-bottom: 0.2rem; }
+.notice-row { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 12px; padding: 0.9rem 1rem; display: grid; grid-template-columns: 120px 1fr 36px; gap: 0.8rem; align-items: start; margin-bottom: 0.5rem; }
+.ap-label-col { display: flex; flex-direction: column; gap: 5px; }
+.ap-small-label { font-size: 0.58rem; color: rgba(255,255,255,0.4); letter-spacing: 1px; text-transform: uppercase; }
+.ap-select, .ap-input, .ap-textarea, .ap-number { background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #fff; font-family: inherit; font-size: 0.78rem; padding: 7px 10px; outline: none; transition: border-color 0.2s; width: 100%; }
+.ap-select:focus, .ap-input:focus, .ap-textarea:focus, .ap-number:focus { border-color: var(--azul-claro); }
+.ap-textarea { resize: vertical; min-height: 68px; }
+.ap-select { cursor: pointer; }
+.btn-remove { background: rgba(255,59,59,0.08); border: 1px solid rgba(255,59,59,0.18); color: var(--vermelho); border-radius: 8px; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1rem; flex-shrink: 0; transition: background 0.2s; }
+.btn-remove:hover { background: rgba(255,59,59,0.22); }
+.btn-add { background: rgba(0,212,255,0.06); border: 1px dashed rgba(0,212,255,0.22); color: var(--azul-claro); border-radius: 10px; padding: 9px; font-family: inherit; font-size: 0.75rem; font-weight: 700; cursor: pointer; transition: background 0.2s; text-align: center; }
+.btn-add:hover { background: rgba(0,212,255,0.14); }
+.btn-sec { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.12); color: rgba(255,255,255,0.8); border-radius: 8px; padding: 8px 14px; font-family: inherit; font-size: 0.72rem; font-weight: 700; cursor: pointer; transition: background 0.2s; }
+.btn-sec:hover { background: rgba(255,255,255,0.12); }
+.ticker-row { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 10px; padding: 0.55rem 0.9rem; display: flex; gap: 0.6rem; align-items: center; margin-bottom: 0.5rem; }
+
+.media-list { display: flex; flex-direction: column; gap: 0.6rem; }
+.media-row { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 10px; padding: 0.7rem 1rem; display: flex; align-items: center; gap: 0.8rem; }
+.media-row.dragging { opacity: 0.4; }
+.media-thumb { width: 60px; height: 40px; border-radius: 6px; background: rgba(255,255,255,0.05); flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; border: 1px solid rgba(255,255,255,0.08); overflow: hidden; }
+.media-thumb img, .media-thumb video { width: 100%; height: 100%; object-fit: cover; }
+.media-info { flex: 1; min-width: 0; }
+.media-name { font-size: 0.75rem; font-weight: 700; color: rgba(255,255,255,0.85); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.media-type { font-size: 0.6rem; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
+.media-dur-wrap { display: flex; align-items: center; gap: 5px; font-size: 0.6rem; color: rgba(255,255,255,0.4); flex-shrink: 0; }
+.media-dur-wrap .ap-number { width: 62px; padding: 5px 6px; }
+.media-drag { display: flex; flex-direction: column; gap: 3px; cursor: grab; padding: 6px 4px; opacity: 0.4; flex-shrink: 0; }
+.media-drag span { display: block; width: 18px; height: 2px; background: #fff; border-radius: 1px; }
+.media-move { display: flex; flex-direction: column; gap: 2px; flex-shrink: 0; }
+.media-move button { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #fff; border-radius: 5px; width: 24px; height: 18px; font-size: 0.55rem; cursor: pointer; line-height: 1; }
+.media-move button:hover { background: rgba(0,212,255,0.2); }
+.upload-zone { border: 2px dashed rgba(0,212,255,0.2); border-radius: 12px; padding: 1.5rem; text-align: center; cursor: pointer; transition: all 0.2s; background: rgba(0,212,255,0.03); }
+.upload-zone:hover, .upload-zone.drag-over { border-color: var(--azul-claro); background: rgba(0,212,255,0.07); }
+.upload-zone-icon { font-size: 2rem; margin-bottom: 0.5rem; }
+.upload-zone-text { font-size: 0.75rem; color: rgba(255,255,255,0.5); line-height: 1.6; }
+.upload-zone-text strong { color: var(--azul-claro); }
+#fileInput, #importInput { display: none; }
+.upload-progress { display: none; background: rgba(0,0,0,0.3); border-radius: 8px; overflow: hidden; height: 6px; margin-top: 0.7rem; }
+.upload-progress-bar { height: 100%; background: var(--azul-claro); width: 0%; transition: width 0.3s; }
+.upload-status { font-size: 0.65rem; color: rgba(255,255,255,0.5); margin-top: 0.4rem; min-height: 1em; }
+
+.wait-editor { display: grid; grid-template-columns: 1fr 1fr; gap: 0.7rem; }
+.wait-edit-item { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 10px; padding: 0.8rem; display: flex; flex-direction: column; gap: 6px; }
+.wait-edit-label { display: flex; align-items: center; gap: 6px; font-size: 0.7rem; font-weight: 700; }
+.wait-color-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.wait-input-row { display: flex; gap: 6px; align-items: center; }
+.wait-unit { font-size: 0.65rem; color: rgba(255,255,255,0.4); white-space: nowrap; }
+.emergency-toggle-row { background: rgba(255,59,59,0.06); border: 1px solid rgba(255,59,59,0.2); border-radius: 12px; padding: 1rem; display: flex; flex-direction: column; gap: 0.8rem; }
+.plain-row { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07); border-radius: 12px; padding: 1rem; display: flex; flex-direction: column; gap: 0.8rem; }
+.toggle-header { display: flex; justify-content: space-between; align-items: center; gap: 1rem; }
+.toggle-label { font-size: 0.8rem; font-weight: 700; color: var(--vermelho); }
+.toggle-label.neutral { color: rgba(255,255,255,0.85); }
+.toggle-switch { position: relative; width: 48px; height: 26px; flex-shrink: 0; }
+.toggle-switch input { opacity: 0; width: 0; height: 0; }
+.toggle-slider { position: absolute; inset: 0; background: rgba(255,255,255,0.1); border-radius: 26px; cursor: pointer; transition: 0.3s; border: 1px solid rgba(255,255,255,0.15); }
+.toggle-slider::before { content: ''; position: absolute; height: 18px; width: 18px; left: 3px; top: 3px; background: rgba(255,255,255,0.4); border-radius: 50%; transition: 0.3s; }
+input:checked + .toggle-slider { background: var(--vermelho); border-color: var(--vermelho); }
+.toggle-switch.green input:checked + .toggle-slider { background: #0a7a3a; border-color: var(--verde); }
+input:checked + .toggle-slider::before { transform: translateX(22px); background: #fff; }
+.warn-box { background: rgba(255,214,0,0.08); border: 1px solid rgba(255,214,0,0.3); color: var(--amarelo); border-radius: 10px; padding: 0.7rem 0.9rem; font-size: 0.72rem; line-height: 1.5; }
+.btn-save { background: var(--azul); border: none; border-radius: 12px; color: #fff; font-family: inherit; font-size: 0.82rem; font-weight: 700; padding: 13px; cursor: pointer; letter-spacing: 2px; text-transform: uppercase; transition: background 0.2s, transform 0.1s; flex-shrink: 0; }
+.btn-save:hover { background: #0d62c9; }
+.btn-save:active { transform: scale(0.98); }
+.ap-footer { padding: 1rem 1.8rem; border-top: 1px solid rgba(255,255,255,0.06); flex-shrink: 0; display: flex; flex-direction: column; gap: 0.6rem; }
+.ap-hint { font-size: 0.6rem; color: rgba(255,255,255,0.3); text-align: center; line-height: 1.7; }
+.ap-note { font-size: 0.65rem; color: rgba(255,255,255,0.45); line-height: 1.6; }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div id="logoWrap" style="width:100%;display:flex;justify-content:center"></div>
+    <div class="divider"></div>
+    <div class="weather-card">
+      <span class="weather-icon" id="wIcon">⏳</span>
+      <span class="weather-temp" id="wTemp">--°C</span>
+      <span class="weather-desc" id="wDesc">Carregando...</span>
+    </div>
+    <div class="divider"></div>
+    <div class="notices-box">
+      <div class="notices-header">Avisos e Informações</div>
+      <div class="notices-content" id="noticesContent"></div>
+      <div class="notice-dots" id="noticeDots"></div>
+    </div>
+    <div class="sidebar-footer" id="sidebarFooter"></div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+    <div class="slide-counter" id="slideCounter"></div>
+    <div id="display"></div>
+  </main>
+
+  <!-- FAIXA DE STATUS -->
+  <div class="status-bar" id="statusBar">
+    <div class="emergency-banner" id="emergencyBanner">
+      <span class="emergency-icon">🚨</span>
+      <div class="emergency-label">Ocorrência<br>Emergencial</div>
+    </div>
+    <div id="emergencyMsg" class="emergency-msg" style="display:none"></div>
+    <div class="wait-times" id="waitTimes"></div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer class="footer">
+    <div id="progress" class="progress-bar"></div>
+    <div class="time-box">
+      <div id="clock">00:00</div>
+      <div id="date">--</div>
+    </div>
+    <div class="ticker-wrap" id="tickerWrap">
+      <div class="ticker-track" id="tickerTrack"></div>
+    </div>
+  </footer>
+</div>
+
+<!-- Gatilho oculto -->
+<div id="admin-trigger"></div>
+
+<!-- PIN -->
+<div id="pin-overlay">
+  <div class="pin-box">
+    <div class="ap-title">🔒 Acesso restrito</div>
+    <input id="pinInput" type="password" inputmode="numeric" autocomplete="off" maxlength="12" placeholder="PIN">
+    <div id="pinMsg"></div>
+    <div class="pin-actions">
+      <button class="ap-close" id="pinCancel" type="button">Cancelar</button>
+      <button class="btn-save" id="pinOk" type="button">Entrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- PAINEL ADMIN -->
+<div id="admin-overlay">
+  <div id="admin-panel">
+    <div class="ap-header">
+      <span class="ap-title">⚙ Painel de Edição</span>
+      <button class="ap-close" onclick="closeAdmin(true)">✕ Fechar sem salvar</button>
+    </div>
+
+    <div class="ap-tabs">
+      <div class="ap-tab active" onclick="switchTab('avisos')">📋 Avisos e Ticker</div>
+      <div class="ap-tab" onclick="switchTab('midia')">🖼 Mídia</div>
+      <div class="ap-tab" onclick="switchTab('status')">🏥 Espera e Emergência</div>
+      <div class="ap-tab" onclick="switchTab('config')">🔧 Configurações</div>
+    </div>
+
+    <div class="ap-body">
+      <!-- TAB: AVISOS -->
+      <div class="ap-tab-content active" id="tab-avisos">
+        <div style="display:flex;flex-direction:column;gap:0.5rem">
+          <div class="ap-section-title">Avisos da Sidebar</div>
+          <div id="noticesList"></div>
+          <button class="btn-add" onclick="addNoticeRow()">+ Adicionar aviso</button>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:0.5rem">
+          <div class="ap-section-title">Textos da Barra Branca (ticker)</div>
+          <div id="tickerList"></div>
+          <button class="btn-add" onclick="addTickerRow()">+ Adicionar item</button>
+        </div>
+      </div>
+
+      <!-- TAB: MÍDIA -->
+      <div class="ap-tab-content" id="tab-midia">
+        <div class="ap-section-title">Playlist de Slides (arraste ou use ▲▼ para reordenar)</div>
+        <div class="media-list" id="mediaList"></div>
+
+        <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+          <div class="upload-zone-icon">📁</div>
+          <div class="upload-zone-text">
+            <strong>Clique para adicionar</strong> ou arraste arquivos aqui<br>
+            Imagens: JPG, PNG, GIF, WebP &nbsp;|&nbsp; Vídeos: MP4, WebM<br>
+            <span style="font-size:0.65rem;opacity:0.7">Os arquivos ficam guardados neste aparelho e só entram na TV ao clicar em “Salvar e Aplicar”.</span>
+          </div>
+          <div class="upload-progress" id="uploadProgress"><div class="upload-progress-bar" id="uploadProgressBar"></div></div>
+          <div class="upload-status" id="uploadStatus"></div>
+        </div>
+        <input type="file" id="fileInput" accept="image/*,video/*" multiple>
+      </div>
+
+      <!-- TAB: STATUS -->
+      <div class="ap-tab-content" id="tab-status">
+        <div class="ap-section-title">Tempos de Espera por Prioridade</div>
+        <div class="plain-row">
+          <div class="toggle-header">
+            <span class="toggle-label neutral">Exibir tempos de espera na TV</span>
+            <label class="toggle-switch green"><input type="checkbox" id="waitEnabled"><span class="toggle-slider"></span></label>
+          </div>
+          <div class="ap-note" id="waitUpdatedInfo"></div>
+        </div>
+        <div class="wait-editor" id="waitEditor"></div>
+        <button class="btn-sec" onclick="confirmWait()">✓ Os tempos atuais continuam corretos (renovar horário)</button>
+
+        <div class="ap-section-title" style="margin-top:0.5rem">Alerta de Emergência</div>
+        <div class="emergency-toggle-row">
+          <div class="toggle-header">
+            <span class="toggle-label">🚨 Ativar ocorrência emergencial</span>
+            <label class="toggle-switch"><input type="checkbox" id="emergencyToggle"><span class="toggle-slider"></span></label>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:5px">
+            <div class="ap-small-label">Mensagem de contexto (exibida na faixa)</div>
+            <textarea class="ap-textarea" id="emergencyMsgInput" rows="2" placeholder="Ex: Estamos atendendo uma ocorrência de grande porte. Agradecemos sua compreensão."></textarea>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:5px">
+            <div class="ap-small-label">Desativar automaticamente após</div>
+            <select class="ap-select" id="emergencyExpire">
+              <option value="0">Nunca (desativar manualmente)</option>
+              <option value="15">15 minutos</option>
+              <option value="30">30 minutos</option>
+              <option value="60">1 hora</option>
+              <option value="120">2 horas</option>
+              <option value="240">4 horas</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB: CONFIG -->
+      <div class="ap-tab-content" id="tab-config">
+        <div class="warn-box" id="pinWarn" style="display:none">⚠ Esta TV ainda usa o PIN padrão. Defina um PIN novo abaixo.</div>
+        <div class="ap-section-title">Segurança</div>
+        <div class="plain-row">
+          <div class="ap-label-col">
+            <span class="ap-small-label">Novo PIN (4 a 12 números — deixe em branco para manter o atual)</span>
+            <input class="ap-input" id="setPin" type="password" inputmode="numeric" maxlength="12" autocomplete="new-password" placeholder="••••">
+          </div>
+          <div class="ap-note">O PIN impede que qualquer pessoa abra o painel pela TV. Ele é guardado neste navegador: serve para dissuadir acesso casual, não substitui um login de verdade.</div>
+        </div>
+
+        <div class="ap-section-title">Tempos de espera</div>
+        <div class="plain-row">
+          <div class="ap-label-col">
+            <span class="ap-small-label">Considerar desatualizado após (horas)</span>
+            <input class="ap-number" id="setStaleH" type="number" min="1" max="48">
+          </div>
+          <div class="ap-note">Passado esse prazo sem atualização, a TV mostra “—” e “Tempos desatualizados”, para não exibir informação antiga ao paciente.</div>
+        </div>
+
+        <div class="ap-section-title">Backup dos textos</div>
+        <div class="plain-row">
+          <div style="display:flex;gap:0.6rem;flex-wrap:wrap">
+            <button class="btn-sec" onclick="exportConfig()">⬇ Exportar avisos, ticker e tempos</button>
+            <button class="btn-sec" onclick="document.getElementById('importInput').click()">⬆ Importar arquivo</button>
+          </div>
+          <div class="ap-note">Use para copiar a configuração de uma TV para outra. A importação só preenche os campos — nada muda na TV até clicar em “Salvar e Aplicar”. Mídias (imagens/vídeos) não entram no backup.</div>
+          <input type="file" id="importInput" accept="application/json,.json">
+        </div>
+
+        <div class="ap-section-title">Armazenamento</div>
+        <div class="plain-row"><div class="ap-note" id="storageInfo">—</div></div>
+        <div class="ap-note" id="versionInfo"></div>
+      </div>
+    </div>
+
+    <div class="ap-footer">
+      <button class="btn-save" onclick="saveAndApply()" id="btnSave">💾 &nbsp;Salvar e Aplicar Agora</button>
+      <p class="ap-hint">Clique <strong style="color:rgba(255,255,255,0.55)">3× no canto inferior esquerdo</strong> para abrir este painel.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ═══════════════════════════════════════════════════
+   CONFIGURAÇÃO DA MARCA  (edite só este bloco para
+   adaptar a outro cliente)
+═══════════════════════════════════════════════════ */
+const BRAND = {
+  nome:     'UPA ROCINHA',
+  rodape:   'LFWSM DIGITAL  •  UPA ROCINHA',
+  logo:     'logo.png',
+  clima:    { lat: -22.99, lon: -43.25, tz: 'America/Sao_Paulo' },
+  pinPadrao: '1234',
+  duracaoImagemSeg: 12,       // padrão por imagem (cada slide pode ter a sua)
+  duracaoAvisoSeg: 8,         // tempo de cada aviso da sidebar
+  esperaValidaHoras: 4,       // tempos de espera mais antigos que isso viram "desatualizados"
+  recargaDiaria: '04:00',     // recarrega a página 1x por dia (limpa memória, pega nova versão)
+  versao: '2.0.0',
+
+  avisos: [
+    { badge:'ok',    label:'Prioridade',  text:'Idosos, gestantes e pessoas com deficiência têm atendimento preferencial.' },
+    { badge:'warn',  label:'Prevenção',   text:'Use máscara se apresentar tosse, febre ou sintomas gripais.' },
+    { badge:'info',  label:'Resultados',  text:'Exames laboratoriais ficam prontos em até 2h.' },
+    { badge:'ok',    label:'UPA Rocinha', text:'Referência em saúde pública no Rio de Janeiro desde 2010.' },
+  ],
+  ticker: [
+    '🏥 Bem-vindo à Unidade de Pronto Atendimento da Rocinha',
+    '📊 Nossa equipe está trabalhando 24h por você',
+    '💉 Vacinação disponível — consulte sua Clínica da Família',
+    '📞 Dúvidas? Fale com nossa equipe de acolhimento',
+  ],
+  espera: [
+    { label:'Vermelho',  sublabel:'Emergência',    color:'#ff6b6b', cls:'priority-vermelho', time:0  },
+    { label:'Laranja',   sublabel:'Muito urgente', color:'#ffa040', cls:'priority-laranja',  time:15 },
+    { label:'Amarelo',   sublabel:'Urgente',       color:'#ffd600', cls:'priority-amarelo',  time:30 },
+    { label:'Verde',     sublabel:'Pouco urgente', color:'#00e57a', cls:'priority-verde',    time:60 },
+    { label:'Azul',      sublabel:'Não urgente',   color:'#00d4ff', cls:'priority-azul',     time:90 },
+  ],
+  slides: [
+    { type:'video', src:'uparocinha.mp4', name:'uparocinha.mp4' },
+    { type:'image', src:'PAPEL.jpeg',     name:'PAPEL.jpeg' },
+  ],
+};
+
+/* ═══════════════════════════════════════════════════
+   UTILITÁRIOS
+═══════════════════════════════════════════════════ */
+const $ = id => document.getElementById(id);
+const clone = o => JSON.parse(JSON.stringify(o));
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const BADGES = ['ok','info','warn','alert'];
+const PRIORITY_CLS = ['priority-vermelho','priority-laranja','priority-amarelo','priority-verde','priority-azul'];
+function esc(s) { return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+function safeColor(c) { return /^#[0-9a-f]{3,8}$/i.test(c || '') ? c : '#ffffff'; }
+function newId() { return 'm_' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function fmtBytes(b) { if (b < 1024) return b + ' B'; if (b < 1048576) return (b/1024).toFixed(0) + ' KB'; if (b < 1073741824) return (b/1048576).toFixed(1) + ' MB'; return (b/1073741824).toFixed(2) + ' GB'; }
+
+/* ═══════════════════════════════════════════════════
+   ARMAZENAMENTO
+   • localStorage  → textos e configurações (pequenos)
+   • IndexedDB     → arquivos de imagem/vídeo (grandes)
+═══════════════════════════════════════════════════ */
+const LS = {
+  get(k, fb) { try { const v = localStorage.getItem(k); return v === null ? fb : JSON.parse(v); } catch { return fb; } },
+  set(k, v)  { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch (e) { console.error('localStorage', k, e); return false; } },
+};
+
+let dbPromise = null;
+function openDb() {
+  if (!dbPromise) dbPromise = new Promise((res, rej) => {
+    if (!window.indexedDB) return rej(new Error('IndexedDB indisponível'));
+    const r = indexedDB.open('tvcorp_media', 1);
+    r.onupgradeneeded = () => r.result.createObjectStore('media');
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+  return dbPromise;
+}
+async function idbPut(key, blob) {
+  const d = await openDb();
+  return new Promise((res, rej) => {
+    const tx = d.transaction('media', 'readwrite');
+    tx.objectStore('media').put(blob, key);
+    tx.oncomplete = () => res();
+    tx.onerror = tx.onabort = () => rej(tx.error || new Error('Falha ao gravar'));
+  });
+}
+async function idbGet(key) {
+  const d = await openDb();
+  return new Promise((res, rej) => {
+    const rq = d.transaction('media').objectStore('media').get(key);
+    rq.onsuccess = () => res(rq.result || null);
+    rq.onerror = () => rej(rq.error);
+  });
+}
+async function idbDel(key) {
+  const d = await openDb();
+  return new Promise((res, rej) => {
+    const tx = d.transaction('media', 'readwrite');
+    tx.objectStore('media').delete(key);
+    tx.oncomplete = () => res();
+    tx.onerror = () => rej(tx.error);
+  });
+}
+
+function seedSlides() { return BRAND.slides.map((s, i) => ({ id: 'def_' + i, type: s.type, name: s.name, src: s.src, hasBlob: false, duration: null })); }
+
+function loadData() {
+  const notices = LS.get('upa_notices', null);
+  const ticker  = LS.get('upa_ticker', null);
+  const wait    = LS.get('upa_wait', null);
+  const slides  = LS.get('upa_slides2', null);
+  return {
+    notices:   Array.isArray(notices) ? notices : clone(BRAND.avisos),
+    ticker:    Array.isArray(ticker)  ? ticker  : clone(BRAND.ticker),
+    wait:      Array.isArray(wait) && wait.length ? wait : clone(BRAND.espera),
+    waitMeta:  Object.assign({ enabled: true, updatedAt: null }, LS.get('upa_wait_meta', {})),
+    slides:    Array.isArray(slides) ? slides : seedSlides(),
+    emergency: Object.assign({ active: false, msg: '', expireMin: 0, at: 0 }, LS.get('upa_emergency', {})),
+    settings:  Object.assign({ pin: BRAND.pinPadrao, staleHours: BRAND.esperaValidaHoras }, LS.get('upa_settings', {})),
+  };
+}
+
+/* Migração da versão antiga: recupera uploads que ficaram soltos no localStorage */
+async function migrate() {
+  try {
+    if (LS.get('upa_schema', 1) >= 2) return;
+    const slides = LS.get('upa_slides2', null) || seedSlides();
+    const keys = [];
+    for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.startsWith('upa_media_')) keys.push(k); }
+    for (const k of keys) {
+      try {
+        const blob = await (await fetch(localStorage.getItem(k))).blob();
+        const id = newId();
+        await idbPut(id, blob);
+        slides.push({ id, type: blob.type.startsWith('video/') ? 'video' : 'image', name: k.replace(/^upa_media_\d+_/, ''), hasBlob: true, duration: null });
+        localStorage.removeItem(k);
+      } catch (e) { console.warn('Não foi possível migrar', k, e); }
+    }
+    localStorage.removeItem('upa_slides');
+    LS.set('upa_slides2', slides);
+    LS.set('upa_schema', 2);
+  } catch (e) { console.warn('Migração falhou', e); }
+}
+
+let state = null;
+
+/* ═══════════════════════════════════════════════════
+   MARCA (logo / rodapé / título)
+═══════════════════════════════════════════════════ */
+function brandLogoNode(cls) {
+  const img = new Image();
+  img.className = cls; img.alt = BRAND.nome; img.src = BRAND.logo;
+  img.onerror = () => { const t = document.createElement('div'); t.className = 'logo-text'; t.textContent = BRAND.nome; img.replaceWith(t); };
+  return img;
+}
+function applyBrand() {
+  document.title = BRAND.nome + ' — TV Corporativa';
+  $('logoWrap').appendChild(brandLogoNode('logo'));
+  $('sidebarFooter').textContent = BRAND.rodape;
+}
+
+/* ═══════════════════════════════════════════════════
+   RELÓGIO
+═══════════════════════════════════════════════════ */
+function updateClock() {
+  const now = new Date();
+  $('clock').textContent = now.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' });
+  $('date').textContent  = now.toLocaleDateString('pt-BR', { weekday:'short', day:'2-digit', month:'short' }).toUpperCase().replace(/\./g,'');
+}
+setInterval(updateClock, 1000); updateClock();
+
+/* ═══════════════════════════════════════════════════
+   CLIMA  (com cache para quando ficar sem internet)
+═══════════════════════════════════════════════════ */
+const WMO_MAP = {0:['☀️','Céu limpo'],1:['🌤️','Poucas nuvens'],2:['⛅','Parcialmente nublado'],3:['☁️','Nublado'],45:['🌫️','Nevoeiro'],48:['🌫️','Nevoeiro'],51:['🌦️','Garoa leve'],53:['🌦️','Garoa moderada'],55:['🌧️','Garoa intensa'],56:['🌧️','Garoa gelada'],57:['🌧️','Garoa gelada'],61:['🌧️','Chuva leve'],63:['🌧️','Chuva moderada'],65:['🌧️','Chuva forte'],66:['🌧️','Chuva gelada'],67:['🌧️','Chuva gelada'],80:['🌦️','Pancadas'],81:['🌧️','Chuvas moderadas'],82:['🌩️','Chuvas fortes'],95:['⛈️','Tempestade'],96:['⛈️','Tempestade c/ granizo'],99:['⛈️','Tempestade c/ granizo']};
+function showWeather(icon, temp, desc) { $('wIcon').textContent = icon; $('wTemp').textContent = temp; $('wDesc').textContent = desc; }
+async function getWeather() {
+  try {
+    const c = BRAND.clima;
+    const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${c.lat}&longitude=${c.lon}&current_weather=true&timezone=${encodeURIComponent(c.tz)}`);
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const cw = (await r.json()).current_weather;
+    const [icon, desc] = WMO_MAP[cw.weathercode] || ['🌡️','Variável'];
+    const temp = Math.round(cw.temperature) + '°C';
+    showWeather(icon, temp, desc);
+    LS.set('upa_weather', { icon, temp, desc, t: Date.now() });
+  } catch {
+    const c = LS.get('upa_weather', null);
+    if (c && Date.now() - c.t < 3 * 3600e3) showWeather(c.icon, c.temp, c.desc);
+    else showWeather('📡', '--°C', 'Sem conexão');
+  }
+}
+getWeather(); setInterval(getWeather, 15 * 60 * 1000);
+window.addEventListener('online', getWeather);
+
+/* ═══════════════════════════════════════════════════
+   TICKER
+═══════════════════════════════════════════════════ */
+function buildTicker(items) {
+  const track = $('tickerTrack'), wrap = $('tickerWrap');
+  const clean = items.map(t => String(t || '').trim()).filter(Boolean);
+  track.innerHTML = '';
+  if (!clean.length) return;
+  const addCopy = () => clean.forEach(text => {
+    const span = document.createElement('span');
+    span.className = 'ticker-item';
+    span.appendChild(document.createTextNode(text));
+    const sep = document.createElement('span'); sep.className = 'ticker-sep';
+    span.appendChild(sep);
+    track.appendChild(span);
+  });
+  addCopy();
+  const oneW = track.scrollWidth || 1;
+  const reps = Math.max(1, Math.ceil((wrap.clientWidth || window.innerWidth) / oneW));
+  track.innerHTML = '';
+  for (let i = 0; i < reps * 2; i++) addCopy();      // metade + metade = loop contínuo sem buraco
+  const half = track.scrollWidth / 2;
+  track.style.animation = 'none'; void track.offsetWidth;
+  track.style.animation = '';
+  track.style.animationDuration = Math.max(20, half / 110) + 's';   // ~110 px/s, independe do tamanho do texto
+}
+
+/* ═══════════════════════════════════════════════════
+   AVISOS DA SIDEBAR
+═══════════════════════════════════════════════════ */
+let noticeInterval = null;
+function fitNotices() {
+  const container = $('noticesContent');
+  const maxH = container.clientHeight;
+  if (!maxH) return;
+  container.querySelectorAll('.notice-item').forEach(el => {
+    el.style.fontSize = '';
+    let size = parseFloat(getComputedStyle(el).fontSize);
+    while (el.scrollHeight > maxH && size > 12) { size -= 1; el.style.fontSize = size + 'px'; }
+  });
+}
+function buildNotices(notices) {
+  const container = $('noticesContent'), dotsEl = $('noticeDots');
+  container.innerHTML = ''; dotsEl.innerHTML = '';
+  if (noticeInterval) clearInterval(noticeInterval);
+  const list = notices.filter(n => n && String(n.text || '').trim());
+  list.forEach((n, i) => {
+    const el = document.createElement('div');
+    el.className = 'notice-item' + (i === 0 ? ' active' : '');
+    const badge = document.createElement('span');
+    badge.className = 'badge badge-' + (BADGES.includes(n.badge) ? n.badge : 'info');
+    badge.textContent = n.label || '';
+    el.appendChild(badge); el.appendChild(document.createElement('br'));
+    el.appendChild(document.createTextNode(n.text));
+    container.appendChild(el);
+    const dot = document.createElement('div');
+    dot.className = 'notice-dot' + (i === 0 ? ' active' : '');
+    dotsEl.appendChild(dot);
+  });
+  requestAnimationFrame(fitNotices);
+  let idx = 0;
+  if (list.length > 1) noticeInterval = setInterval(() => {
+    const items = container.querySelectorAll('.notice-item'), dots = dotsEl.querySelectorAll('.notice-dot');
+    items[idx].classList.remove('active'); dots[idx].classList.remove('active');
+    idx = (idx + 1) % items.length;
+    items[idx].classList.add('active'); dots[idx].classList.add('active');
+  }, BRAND.duracaoAvisoSeg * 1000);
+}
+window.addEventListener('resize', () => { fitNotices(); });
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitNotices);
+
+/* ═══════════════════════════════════════════════════
+   FAIXA DE STATUS (espera + emergência)
+═══════════════════════════════════════════════════ */
+function isWaitStale() {
+  const t = state.waitMeta.updatedAt;
+  return !t || (Date.now() - t) > state.settings.staleHours * 3600e3;
+}
+function fmtWhen(ts) {
+  const d = new Date(ts), hm = d.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' });
+  return d.toDateString() === new Date().toDateString() ? hm : d.toLocaleDateString('pt-BR', { day:'2-digit', month:'2-digit' }) + ' ' + hm;
+}
+function buildStatusBar() {
+  const { wait, waitMeta, emergency } = state;
+  const bar = $('statusBar'), msgEl = $('emergencyMsg'), timesEl = $('waitTimes');
+  const showWait = waitMeta.enabled !== false;
+  bar.style.display = (showWait || emergency.active) ? 'flex' : 'none';
+
+  bar.classList.toggle('emergency', !!emergency.active);
+  const msg = String(emergency.msg || '').trim();
+  msgEl.textContent = emergency.active ? msg : '';
+  msgEl.style.display = (emergency.active && msg) ? 'flex' : 'none';
+
+  timesEl.innerHTML = '';
+  timesEl.style.display = showWait ? 'flex' : 'none';
+  if (!showWait) return;
+  const stale = isWaitStale();
+  timesEl.classList.toggle('is-stale', stale);
+
+  wait.forEach(w => {
+    const item = document.createElement('div');
+    item.className = 'wait-item ' + (PRIORITY_CLS.includes(w.cls) ? w.cls : '');
+    const t = parseInt(w.time) || 0;
+    const timeStr = stale ? '—' : (t === 0 ? 'Imediato' : t < 60 ? `${t} min` : `${Math.floor(t/60)}h${t%60 ? ' ' + t%60 + 'm' : ''}`);
+    [['wait-dot',''],['wait-priority', w.label],['wait-time', timeStr],['wait-label', w.sublabel]].forEach(([c, txt]) => {
+      const d = document.createElement('div'); d.className = c; d.textContent = txt || ''; item.appendChild(d);
+    });
+    timesEl.appendChild(item);
+  });
+  const upd = document.createElement('div');
+  upd.className = 'wait-updated' + (stale ? ' stale' : '');
+  upd.textContent = stale ? '⚠ Tempos em atualização' : 'Atualizado às ' + fmtWhen(waitMeta.updatedAt);
+  timesEl.appendChild(upd);
+}
+
+/* A cada 30 s: expira emergência automática e reavalia "desatualizado" */
+function tickState() {
+  const em = state.emergency;
+  if (em.active && em.expireMin > 0 && Date.now() > em.at + em.expireMin * 60000) {
+    em.active = false;
+    LS.set('upa_emergency', em);
+  }
+  buildStatusBar();
+}
+setInterval(() => { if (state) tickState(); }, 30000);
+
+/* ═══════════════════════════════════════════════════
+   SLIDES
+═══════════════════════════════════════════════════ */
+let currentIdx = 0, appSlides = [], failStreak = 0, playGen = 0;
+let slideTimer = null, watchdog = null, currentUrl = null;
+const display = $('display'), progressEl = $('progress'), counterEl = $('slideCounter');
+
+function setProgress(ms) {
+  progressEl.style.transition = 'none'; progressEl.style.width = '0%';
+  if (ms > 0) requestAnimationFrame(() => requestAnimationFrame(() => {
+    progressEl.style.transition = `width ${ms}ms linear`; progressEl.style.width = '100%';
+  }));
+}
+function clearPlayTimers() { clearTimeout(slideTimer); clearInterval(watchdog); }
+function revokeCurrent() { if (currentUrl) { URL.revokeObjectURL(currentUrl); currentUrl = null; } }
+async function resolveSrc(s) {
+  if (!s.hasBlob) return s.src;
+  const b = await idbGet(s.id);
+  return b ? URL.createObjectURL(b) : null;
+}
+function showEmpty(msg) {
+  revokeCurrent(); display.innerHTML = '';
+  const box = document.createElement('div'); box.className = 'empty-state';
+  box.appendChild(brandLogoNode(''));
+  if (msg) { const s = document.createElement('small'); s.textContent = msg; box.appendChild(s); }
+  display.appendChild(box); display.style.opacity = '1';
+  counterEl.textContent = ''; setProgress(0);
+}
+function nextSlide() {
+  if (!appSlides.length) return showSlide();
+  currentIdx = (currentIdx + 1) % appSlides.length;
+  showSlide();
+}
+function skipSlide(gen) {
+  if (gen !== playGen) return;
+  clearPlayTimers();
+  failStreak++;
+  if (failStreak >= appSlides.length) {            // nada carregou: mostra aviso e tenta de novo em 30 s
+    showEmpty('Não foi possível carregar as mídias. Tentando novamente…');
+    slideTimer = setTimeout(() => { failStreak = 0; showSlide(); }, 30000);
+  } else {
+    slideTimer = setTimeout(nextSlide, 500);
+  }
+}
+async function showSlide() {
+  clearPlayTimers();
+  const gen = ++playGen;
+  if (!appSlides.length) { showEmpty('Nenhuma mídia cadastrada.'); return; }
+  if (currentIdx >= appSlides.length) currentIdx = 0;
+  const s = appSlides[currentIdx];
+  counterEl.textContent = `${currentIdx + 1} / ${appSlides.length}`;
+  display.style.opacity = '0';
+  await sleep(700);
+  if (gen !== playGen) return;
+
+  let src = null;
+  try { src = await resolveSrc(s); } catch (e) { console.warn('Mídia indisponível', s.name, e); }
+  if (gen !== playGen) { if (src && s.hasBlob) URL.revokeObjectURL(src); return; }
+  revokeCurrent();
+  display.innerHTML = '';
+  if (!src) return skipSlide(gen);
+  if (s.hasBlob) currentUrl = src;
+
+  if (s.type === 'video') {
+    const v = document.createElement('video');
+    v.muted = true; v.playsInline = true; v.autoplay = true; v.className = 'media-video'; v.src = src;
+    v.onended = () => { if (gen === playGen) nextSlide(); };
+    v.onerror = () => skipSlide(gen);
+    v.onplaying = () => { failStreak = 0; };
+    v.onloadedmetadata = () => { if (gen === playGen && isFinite(v.duration)) setProgress(v.duration * 1000); };
+    display.appendChild(v); setProgress(0);
+    const p = v.play(); if (p && p.catch) p.catch(() => skipSlide(gen));
+    // vigia: se o vídeo ficar 15 s sem avançar, pula
+    let last = -1, stuck = 0;
+    watchdog = setInterval(() => {
+      if (gen !== playGen) return;
+      if (v.currentTime === last && !v.ended) { if (++stuck >= 3) skipSlide(gen); }
+      else { stuck = 0; last = v.currentTime; }
+    }, 5000);
+  } else {
+    const img = new Image();
+    img.className = 'media-image'; img.alt = '';
+    img.onload = () => { failStreak = 0; };
+    img.onerror = () => skipSlide(gen);
+    img.src = src;
+    display.appendChild(img);
+    const ms = (s.duration || BRAND.duracaoImagemSeg) * 1000;
+    setProgress(ms);
+    slideTimer = setTimeout(() => { if (gen === playGen) nextSlide(); }, ms);
+  }
+  display.style.opacity = '1';
+}
+
+/* ═══════════════════════════════════════════════════
+   INICIALIZAÇÃO
+═══════════════════════════════════════════════════ */
+function applyAll() {
+  buildNotices(state.notices);
+  buildTicker(state.ticker);
+  buildStatusBar();
+}
+(async function init() {
+  applyBrand();
+  try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch {}
+  await migrate();
+  state = loadData();
+  appSlides = state.slides;
+  applyAll();
+  currentIdx = 0; showSlide();
+  window.addEventListener('resize', () => buildTicker(state.ticker));
+  console.log(BRAND.nome + ' TV v' + BRAND.versao);
+})();
+
+/* Recarga diária automática (1x por dia, fora do painel) */
+setInterval(() => {
+  const now = new Date();
+  const hm = now.toTimeString().slice(0, 5), day = now.toDateString();
+  if (hm === BRAND.recargaDiaria && !adminOpen() && !pinOpen() && localStorage.getItem('upa_last_reload') !== day) {
+    localStorage.setItem('upa_last_reload', day);
+    location.reload();
+  }
+}, 30000);
+
+/* Esconde o cursor após 3 s parado (TV) */
+let idleT;
+function wake() { document.body.classList.remove('idle'); clearTimeout(idleT); idleT = setTimeout(() => document.body.classList.add('idle'), 3000); }
+['mousemove','mousedown','keydown','touchstart'].forEach(ev => document.addEventListener(ev, wake, { passive: true })); wake();
+
+/* ═══════════════════════════════════════════════════
+   GATILHO ADMIN + PIN
+═══════════════════════════════════════════════════ */
+const adminOpen = () => $('admin-overlay').classList.contains('open');
+const pinOpen   = () => $('pin-overlay').classList.contains('open');
+let clickCount = 0, clickTimer = null, pinFails = 0, lockUntil = 0;
+
+$('admin-trigger').addEventListener('click', () => {
+  clickCount++; clearTimeout(clickTimer);
+  clickTimer = setTimeout(() => { clickCount = 0; }, 600);
+  if (clickCount >= 3) { clickCount = 0; requestAdmin(); }
+});
+function requestAdmin() {
+  if (!state) return;
+  if (!String(state.settings.pin || '')) return openAdmin();       // sem PIN configurado
+  $('pinInput').value = ''; $('pinMsg').textContent = '';
+  $('pin-overlay').classList.add('open');
+  setTimeout(() => $('pinInput').focus(), 50);
+}
+function submitPin() {
+  const left = lockUntil - Date.now();
+  if (left > 0) { $('pinMsg').textContent = `Aguarde ${Math.ceil(left/1000)}s para tentar de novo.`; return; }
+  if ($('pinInput').value === String(state.settings.pin)) {
+    pinFails = 0; $('pin-overlay').classList.remove('open'); openAdmin();
+  } else {
+    pinFails++;
+    $('pinInput').value = '';
+    if (pinFails >= 5) { lockUntil = Date.now() + 60000; pinFails = 0; $('pinMsg').textContent = 'Muitas tentativas. Bloqueado por 60s.'; }
+    else $('pinMsg').textContent = 'PIN incorreto.';
+  }
+}
+$('pinOk').addEventListener('click', submitPin);
+$('pinCancel').addEventListener('click', () => $('pin-overlay').classList.remove('open'));
+$('pinInput').addEventListener('keydown', e => { if (e.key === 'Enter') submitPin(); });
+$('pin-overlay').addEventListener('click', e => { if (e.target === $('pin-overlay')) $('pin-overlay').classList.remove('open'); });
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  if (pinOpen()) $('pin-overlay').classList.remove('open');
+  else if (adminOpen()) closeAdmin(true);
+});
+
+/* Tela cheia ao clicar (fora do painel) */
+document.querySelector('.app').addEventListener('click', () => {
+  if (!document.fullscreenElement && !adminOpen() && !pinOpen()) document.documentElement.requestFullscreen().catch(() => {});
+});
+
+/* ═══════════════════════════════════════════════════
+   PAINEL — abrir / fechar / abas
+═══════════════════════════════════════════════════ */
+let draft = null, thumbUrls = [];
+
+function openAdmin() {
+  state = loadData();
+  draft = { slides: clone(state.slides), added: [], removed: [], waitTouched: false, waitWorking: clone(state.wait) };
+  renderNoticesList(state.notices);
+  renderTickerList(state.ticker);
+  renderMediaList();
+  renderWaitEditor(draft.waitWorking);
+  $('waitEnabled').checked = state.waitMeta.enabled !== false;
+  $('waitUpdatedInfo').textContent = state.waitMeta.updatedAt ? 'Último horário registrado: ' + fmtWhen(state.waitMeta.updatedAt) : 'Nenhum horário registrado ainda — a TV exibe “—” até você salvar os tempos.';
+  $('emergencyToggle').checked = state.emergency.active;
+  $('emergencyMsgInput').value = state.emergency.msg || '';
+  $('emergencyExpire').value = String(state.emergency.expireMin || 0);
+  $('setPin').value = '';
+  $('setStaleH').value = state.settings.staleHours;
+  $('pinWarn').style.display = (String(state.settings.pin) === BRAND.pinPadrao) ? 'block' : 'none';
+  $('versionInfo').textContent = BRAND.nome + ' — TV Corporativa v' + BRAND.versao;
+  showStorage();
+  switchTab('avisos');
+  $('admin-overlay').classList.add('open');
+}
+function closeAdmin(discard) {
+  if (draft && discard) draft.added.forEach(id => idbDel(id).catch(() => {}));   // descarta uploads não salvos
+  draft = null;
+  thumbUrls.forEach(u => URL.revokeObjectURL(u)); thumbUrls = [];
+  $('admin-overlay').classList.remove('open');
+}
+function switchTab(name) {
+  const names = ['avisos','midia','status','config'];
+  document.querySelectorAll('.ap-tab').forEach((t, i) => t.classList.toggle('active', names[i] === name));
+  document.querySelectorAll('.ap-tab-content').forEach(c => c.classList.remove('active'));
+  $('tab-' + name).classList.add('active');
+}
+async function showStorage() {
+  try {
+    const e = await navigator.storage.estimate();
+    $('storageInfo').textContent = `Em uso: ${fmtBytes(e.usage || 0)} de ${fmtBytes(e.quota || 0)} disponíveis neste navegador.`;
+  } catch { $('storageInfo').textContent = 'Não foi possível medir o armazenamento neste navegador.'; }
+}
+
+/* ── Avisos ── */
+function renderNoticesList(notices) {
+  const list = $('noticesList'); list.innerHTML = '';
+  notices.forEach((n, i) => {
+    const row = document.createElement('div'); row.className = 'notice-row';
+    row.innerHTML = `
+      <div class="ap-label-col">
+        <span class="ap-small-label">Tipo</span>
+        <select class="ap-select" data-field="badge">
+          <option value="ok"    ${n.badge==='ok'   ?'selected':''}>✅ OK</option>
+          <option value="info"  ${n.badge==='info' ?'selected':''}>🔵 Info</option>
+          <option value="warn"  ${n.badge==='warn' ?'selected':''}>⚠️ Atenção</option>
+          <option value="alert" ${n.badge==='alert'?'selected':''}>🔴 Alerta</option>
+        </select>
+        <span class="ap-small-label" style="margin-top:5px">Título</span>
+        <input class="ap-input" data-field="label" value="${esc(n.label)}" placeholder="Ex: Prioridade">
+      </div>
+      <div class="ap-label-col">
+        <span class="ap-small-label">Texto do aviso</span>
+        <textarea class="ap-textarea" data-field="text">${esc(n.text)}</textarea>
+      </div>
+      <button class="btn-remove" onclick="removeNotice(${i})" title="Remover">✕</button>`;
+    list.appendChild(row);
+  });
+}
+function collectNotices() { return [...document.querySelectorAll('#noticesList .notice-row')].map(r => ({ badge: r.querySelector('[data-field="badge"]').value, label: r.querySelector('[data-field="label"]').value, text: r.querySelector('[data-field="text"]').value })); }
+function addNoticeRow()  { const d = collectNotices(); d.push({ badge:'info', label:'Novo', text:'' }); renderNoticesList(d); }
+function removeNotice(i) { const d = collectNotices(); d.splice(i, 1); renderNoticesList(d); }
+
+/* ── Ticker ── */
+function renderTickerList(items) {
+  const list = $('tickerList'); list.innerHTML = '';
+  items.forEach((text, i) => {
+    const row = document.createElement('div'); row.className = 'ticker-row';
+    row.innerHTML = `<input class="ap-input" value="${esc(text)}" placeholder="Texto do ticker..." style="flex:1"><button class="btn-remove" onclick="removeTicker(${i})" title="Remover">✕</button>`;
+    list.appendChild(row);
+  });
+}
+function collectTicker() { return [...document.querySelectorAll('#tickerList .ticker-row input')].map(el => el.value); }
+function addTickerRow()  { const d = collectTicker(); d.push(''); renderTickerList(d); }
+function removeTicker(i) { const d = collectTicker(); d.splice(i, 1); renderTickerList(d); }
+
+/* ── Mídia ── */
+function syncDraftFromDom() {
+  const byId = new Map(draft.slides.map(s => [s.id, s]));
+  const out = [];
+  document.querySelectorAll('#mediaList .media-row').forEach(r => {
+    const s = byId.get(r.dataset.id); if (!s) return;
+    const d = r.querySelector('.media-dur');
+    if (d) { const n = parseInt(d.value); s.duration = (n >= 3 && n <= 300) ? n : null; }
+    out.push(s);
+  });
+  draft.slides = out;
+}
+async function fillThumb(row, s) {
+  const box = row.querySelector('.media-thumb');
+  try {
+    const b = await idbGet(s.id);
+    if (!b) { box.textContent = '⚠️'; box.title = 'Arquivo não encontrado neste aparelho'; return; }
+    const u = URL.createObjectURL(b); thumbUrls.push(u);
+    const el = document.createElement(s.type === 'video' ? 'video' : 'img');
+    if (s.type === 'video') { el.muted = true; el.preload = 'metadata'; }
+    el.src = u; box.innerHTML = ''; box.appendChild(el);
+  } catch { box.textContent = '⚠️'; }
+}
+function renderMediaList() {
+  thumbUrls.forEach(u => URL.revokeObjectURL(u)); thumbUrls = [];
+  const list = $('mediaList'); list.innerHTML = '';
+  if (!draft.slides.length) { list.innerHTML = '<div class="ap-note">Playlist vazia — a TV mostrará apenas a logo.</div>'; return; }
+  draft.slides.forEach(s => {
+    const isVideo = s.type === 'video';
+    const row = document.createElement('div'); row.className = 'media-row'; row.dataset.id = s.id;
+    row.innerHTML = `
+      <div class="media-drag" title="Arraste para reordenar"><span></span><span></span><span></span></div>
+      <div class="media-move"><button type="button" onclick="moveMedia('${esc(s.id)}',-1)">▲</button><button type="button" onclick="moveMedia('${esc(s.id)}',1)">▼</button></div>
+      <div class="media-thumb">${isVideo ? '🎬' : '🖼️'}</div>
+      <div class="media-info">
+        <div class="media-name">${esc(s.name)}</div>
+        <div class="media-type">${isVideo ? '🎬 Vídeo' : '🖼 Imagem'}</div>
+      </div>
+      ${isVideo ? '<div class="media-dur-wrap">dura o vídeo todo</div>'
+                : `<div class="media-dur-wrap">exibir <input class="ap-number media-dur" type="number" min="3" max="300" placeholder="${BRAND.duracaoImagemSeg}" value="${s.duration || ''}"> s</div>`}
+      <button class="btn-remove" onclick="removeMedia('${esc(s.id)}')" title="Remover">✕</button>`;
+    list.appendChild(row);
+    if (s.hasBlob) fillThumb(row, s);
+    else if (s.src) {
+      const box = row.querySelector('.media-thumb');
+      const el = document.createElement(isVideo ? 'video' : 'img');
+      if (isVideo) { el.muted = true; el.preload = 'metadata'; }
+      el.onerror = () => { box.textContent = '⚠️'; };
+      el.src = s.src; box.innerHTML = ''; box.appendChild(el);
+    }
+  });
+  initDragSort();
+}
+function removeMedia(id) {
+  syncDraftFromDom();
+  const s = draft.slides.find(x => x.id === id);
+  draft.slides = draft.slides.filter(x => x.id !== id);
+  if (s && s.hasBlob) draft.removed.push(id);        // o arquivo só é apagado de verdade ao salvar
+  renderMediaList();
+}
+function moveMedia(id, dir) {
+  syncDraftFromDom();
+  const i = draft.slides.findIndex(x => x.id === id), j = i + dir;
+  if (i < 0 || j < 0 || j >= draft.slides.length) return;
+  [draft.slides[i], draft.slides[j]] = [draft.slides[j], draft.slides[i]];
+  renderMediaList();
+}
+function initDragSort() {
+  const list = $('mediaList'); let dragging = null;
+  list.querySelectorAll('.media-row').forEach(row => {
+    const handle = row.querySelector('.media-drag');
+    handle.addEventListener('mousedown', () => { row.draggable = true; });
+    row.addEventListener('dragstart', e => { dragging = row; row.classList.add('dragging'); if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move'; });
+    row.addEventListener('dragend', () => { row.classList.remove('dragging'); row.draggable = false; dragging = null; });
+  });
+  list.ondragover = e => {
+    if (!dragging) return; e.preventDefault();
+    const after = [...list.querySelectorAll('.media-row:not(.dragging)')].reduce((c, ch) => {
+      const box = ch.getBoundingClientRect(), off = e.clientY - box.top - box.height / 2;
+      return (off < 0 && off > c.off) ? { off, el: ch } : c;
+    }, { off: -Infinity }).el;
+    after ? list.insertBefore(dragging, after) : list.appendChild(dragging);
+  };
+}
+
+$('fileInput').addEventListener('change', e => { handleFiles([...e.target.files]); e.target.value = ''; });
+const uploadZone = $('uploadZone');
+uploadZone.addEventListener('dragover',  e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+uploadZone.addEventListener('drop', e => { e.preventDefault(); uploadZone.classList.remove('drag-over'); handleFiles([...e.dataTransfer.files]); });
+
+async function handleFiles(files) {
+  if (!draft) return;
+  const valid = files.filter(f => /^(image|video)\//.test(f.type));
+  if (!valid.length) { $('uploadStatus').textContent = 'Nenhum arquivo de imagem ou vídeo reconhecido.'; return; }
+  syncDraftFromDom();
+  const prog = $('uploadProgress'), bar = $('uploadProgressBar'), status = $('uploadStatus');
+  prog.style.display = 'block'; bar.style.width = '0%';
+  let ok = 0; const errors = [];
+  for (let i = 0; i < valid.length; i++) {
+    const f = valid[i];
+    status.textContent = `Salvando ${i + 1} de ${valid.length}: ${f.name} (${fmtBytes(f.size)})…`;
+    const id = newId();
+    try {
+      await idbPut(id, f);
+      draft.added.push(id);
+      draft.slides.push({ id, type: f.type.startsWith('video/') ? 'video' : 'image', name: f.name, hasBlob: true, duration: null });
+      ok++;
+    } catch (err) {
+      console.error(err);
+      errors.push(f.name + (err && err.name === 'QuotaExceededError' ? ' (sem espaço no navegador)' : ''));
+    }
+    bar.style.width = Math.round((i + 1) / valid.length * 100) + '%';
+  }
+  renderMediaList(); showStorage();
+  status.textContent = (ok ? `✓ ${ok} arquivo(s) adicionado(s). Clique em “Salvar e Aplicar” para publicar. ` : '') + (errors.length ? '⚠ Falhou: ' + errors.join(', ') : '');
+  setTimeout(() => { prog.style.display = 'none'; bar.style.width = '0%'; }, 800);
+}
+
+/* ── Tempos de espera ── */
+function renderWaitEditor(wait) {
+  const editor = $('waitEditor'); editor.innerHTML = '';
+  wait.forEach((w, i) => {
+    const item = document.createElement('div'); item.className = 'wait-edit-item';
+    item.innerHTML = `
+      <div class="wait-edit-label">
+        <div class="wait-color-dot" style="background:${safeColor(w.color)}"></div>
+        ${esc(w.label)} <span style="opacity:0.5;font-weight:400;font-size:0.6rem">— ${esc(w.sublabel)}</span>
+      </div>
+      <div class="wait-input-row">
+        <input type="number" class="ap-number" data-wait="${i}" value="${parseInt(w.time) || 0}" min="0" max="999">
+        <span class="wait-unit">minutos &nbsp;<span style="opacity:0.6">(0 = Imediato)</span></span>
+      </div>`;
+    editor.appendChild(item);
+  });
+}
+function collectWait() {
+  const base = clone(state.wait);
+  document.querySelectorAll('[data-wait]').forEach(el => {
+    const i = parseInt(el.dataset.wait);
+    if (base[i]) base[i].time = Math.max(0, Math.min(999, parseInt(el.value) || 0));
+  });
+  return base;
+}
+function confirmWait() {
+  draft.waitTouched = true;
+  $('waitUpdatedInfo').textContent = '✓ Marcado: o horário será renovado ao clicar em “Salvar e Aplicar”.';
+}
+
+/* ── Backup ── */
+function exportConfig() {
+  const data = { schema: 2, app: BRAND.nome, exportadoEm: new Date().toISOString(), notices: collectNotices(), ticker: collectTicker(), wait: collectWait().map(w => ({ label: w.label, time: w.time })) };
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
+  a.download = 'tv-config-' + new Date().toISOString().slice(0, 10) + '.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+$('importInput').addEventListener('change', async e => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  try {
+    const d = JSON.parse(await f.text());
+    if (!Array.isArray(d.notices) || !Array.isArray(d.ticker)) throw new Error('formato');
+    renderNoticesList(d.notices.map(n => ({ badge: BADGES.includes(n.badge) ? n.badge : 'info', label: String(n.label || ''), text: String(n.text || '') })));
+    renderTickerList(d.ticker.map(String));
+    if (Array.isArray(d.wait)) {
+      const w = clone(state.wait);
+      d.wait.forEach(x => { const t = w.find(y => y.label === x.label); if (t) t.time = Math.max(0, Math.min(999, parseInt(x.time) || 0)); });
+      renderWaitEditor(w);
+    }
+    alert('Arquivo importado. Revise e clique em “Salvar e Aplicar”.');
+  } catch { alert('Arquivo inválido. Use um arquivo exportado por este painel.'); }
+});
+
+/* ═══════════════════════════════════════════════════
+   SALVAR E APLICAR
+═══════════════════════════════════════════════════ */
+function saveAndApply() {
+  if (!draft) return;
+  const newPin = $('setPin').value.trim();
+  if (newPin && !/^\d{4,12}$/.test(newPin)) { alert('O PIN deve ter de 4 a 12 números.'); switchTab('config'); return; }
+  syncDraftFromDom();
+
+  const prev = state;
+  const notices = collectNotices().filter(n => n.text.trim() !== '');
+  const ticker  = collectTicker().map(t => t.trim()).filter(Boolean);
+  const wait    = collectWait();
+  const waitChanged = JSON.stringify(wait.map(w => w.time)) !== JSON.stringify(prev.wait.map(w => w.time));
+  const waitMeta = {
+    enabled: $('waitEnabled').checked,
+    updatedAt: (waitChanged || draft.waitTouched) ? Date.now() : prev.waitMeta.updatedAt,
+  };
+  const active = $('emergencyToggle').checked;
+  const emergency = {
+    active, msg: $('emergencyMsgInput').value,
+    expireMin: parseInt($('emergencyExpire').value) || 0,
+    at: (active && !prev.emergency.active) ? Date.now() : (prev.emergency.at || Date.now()),
+  };
+  const settings = {
+    pin: newPin || prev.settings.pin,
+    staleHours: Math.max(1, Math.min(48, parseInt($('setStaleH').value) || BRAND.esperaValidaHoras)),
+  };
+  const slides = draft.slides;
+
+  const okAll = [
+    LS.set('upa_notices', notices), LS.set('upa_ticker', ticker), LS.set('upa_wait', wait),
+    LS.set('upa_wait_meta', waitMeta), LS.set('upa_emergency', emergency),
+    LS.set('upa_settings', settings), LS.set('upa_slides2', slides), LS.set('upa_schema', 2),
+  ].every(Boolean);
+  if (!okAll) { alert('Não foi possível salvar tudo (armazenamento cheio ou bloqueado). Nada foi aplicado por completo.'); return; }
+
+  draft.removed.forEach(id => idbDel(id).catch(() => {}));   // agora sim apaga os arquivos removidos
+  draft.added = []; draft.removed = [];
+
+  state = loadData();
+  applyAll();
+  appSlides = state.slides; failStreak = 0;
+  currentIdx = 0; showSlide();
+
+  const btn = $('btnSave'), orig = btn.innerHTML;
+  btn.innerHTML = '✓ &nbsp;Aplicado!'; btn.style.background = '#0a7a3a';
+  setTimeout(() => { btn.innerHTML = orig; btn.style.background = ''; closeAdmin(false); }, 1200);
+}
+</script>
+</body>
+</html>

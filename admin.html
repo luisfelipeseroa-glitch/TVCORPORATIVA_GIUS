@@ -89,6 +89,13 @@ code { background: rgba(0,0,0,.4); padding: 2px 6px; border-radius: 5px; font-si
 #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 #toast.err { background: #b71c1c; }
 .flash { box-shadow: 0 0 0 2px var(--verde) !important; }
+.sched-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
+.sched-row > span:first-child { min-width: 58px; }
+.sched-row input[type=time], .sched-row input[type=datetime-local] { width: auto; padding: 5px 7px; }
+.chk.day { gap: 3px; background: rgba(255,255,255,.05); border: 1px solid var(--line); border-radius: 6px; padding: 3px 7px; }
+.sched-hint { margin-top: 6px; font-size: 11px; color: var(--mut); line-height: 1.5; }
+.prev-wrap { position: relative; width: 100%; padding-top: 56.25%; background: #000; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.prev-wrap iframe { position: absolute; top: 0; left: 0; width: 1920px; height: 1080px; border: 0; transform-origin: 0 0; }
 </style>
 </head>
 <body>
@@ -152,6 +159,7 @@ code { background: rgba(0,0,0,.4); padding: 2px 6px; border-radius: 5px; font-si
     <button data-tab="avisos">📋 Avisos</button>
     <button data-tab="ticker">🔤 Ticker</button>
     <button data-tab="espera">🏥 Espera e emergência</button>
+    <button data-tab="previa">👁 Prévia</button>
     <button data-tab="config">⚙ Configurações</button>
   </nav>
   <main id="content"></main>
@@ -167,7 +175,7 @@ var CFG = window.TV_CONFIG;
 var sb = window.supabase.createClient(CFG.url, CFG.anon);
 var BUCKET = CFG.bucket || 'media';
 var SCREEN_COLS = 'id,org_id,name,claimed_at,last_seen,player_info,created_at';
-var S = { user: null, orgs: [], org: null, screens: [], slides: [], notices: [], ticker: [], settings: null, scope: 'all', tab: 'tvs' };
+var S = { user: null, orgs: [], org: null, screens: [], slides: [], notices: [], ticker: [], settings: null, scope: 'all', tab: 'tvs', sim: '' };
 
 /* ───────── utilidades ───────── */
 function $(s, r) { return (r || document).querySelector(s); }
@@ -298,8 +306,9 @@ $('#orgSelect').addEventListener('change', async function (e) {
 $('#tabs').addEventListener('click', function (e) { var b = e.target.closest('button[data-tab]'); if (b) { S.tab = b.dataset.tab; render(); } });
 function render() {
   [].forEach.call(document.querySelectorAll('#tabs button'), function (b) { b.classList.toggle('active', b.dataset.tab === S.tab); });
-  var v = { tvs: viewTvs, midia: viewMidia, avisos: viewAvisos, ticker: viewTicker, espera: viewEspera, config: viewConfig }[S.tab];
+  var v = { tvs: viewTvs, midia: viewMidia, avisos: viewAvisos, ticker: viewTicker, espera: viewEspera, previa: viewPrevia, config: viewConfig }[S.tab];
   $('#content').innerHTML = v();
+  if (S.tab === 'previa') fitPreview();
 }
 function scopeId() { return S.scope === 'all' ? null : S.scope; }
 function listFor(table) {
@@ -315,10 +324,32 @@ $('#content').addEventListener('change', function (e) { if (e.target.id === 'sco
 
 /* blocos reutilizáveis de linha */
 function attrs(table, r, field, type) { return 'data-table="' + table + '" data-id="' + esc(r.id) + '" data-field="' + field + '" data-type="' + type + '"'; }
+var DAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+function daysLabel(d) {
+  if (!d || !d.length || d.length === 7) return '';
+  var s = d.slice().sort(function (a, b) { return a - b; }), k = s.join(',');
+  if (k === '1,2,3,4,5') return 'Seg–Sex'; if (k === '0,6') return 'Fim de semana';
+  return s.map(function (i) { return DAYS[i]; }).join(', ');
+}
+function shortDate(iso) { return new Date(iso).toLocaleDateString('pt-BR'); }
+function schedSummary(r) {
+  var p = [], dl = daysLabel(r.days);
+  if (dl) p.push(dl);
+  if (r.time_from && r.time_to) p.push(String(r.time_from).slice(0, 5) + '–' + String(r.time_to).slice(0, 5));
+  if (r.starts_at) p.push('a partir de ' + shortDate(r.starts_at));
+  if (r.ends_at) p.push('até ' + shortDate(r.ends_at));
+  return p.join(' · ');
+}
 function schedHtml(table, r) {
-  return '<details class="sched"' + ((r.starts_at || r.ends_at) ? ' open' : '') + '><summary>' + ((r.starts_at || r.ends_at) ? '🗓 Agendado' : 'Agendar') + '</summary>' +
-    '<label>Início <input type="datetime-local" ' + attrs(table, r, 'starts_at', 'date') + ' value="' + toLocalInput(r.starts_at) + '"></label>' +
-    '<label>Fim <input type="datetime-local" ' + attrs(table, r, 'ends_at', 'date') + ' value="' + toLocalInput(r.ends_at) + '"></label></details>';
+  var sum = schedSummary(r), days = r.days || [], base = 'data-table="' + table + '" data-id="' + esc(r.id) + '"';
+  var boxes = DAYS.map(function (n, i) { return '<label class="chk day"><input type="checkbox" data-days="1" ' + base + ' value="' + i + '"' + (days.indexOf(i) >= 0 ? ' checked' : '') + '> ' + n + '</label>'; }).join('');
+  var presets = [['weekdays', 'Seg–Sex'], ['weekend', 'Fim de semana'], ['all', 'Todos']].map(function (p) { return '<button type="button" class="btn sec sm" data-act="days-preset" data-preset="' + p[0] + '" ' + base + '>' + p[1] + '</button>'; }).join('');
+  return '<details class="sched"' + (sum ? ' open' : '') + '><summary>' + (sum ? '🗓 ' + esc(sum) : 'Agendar') + '</summary>' +
+    '<div class="sched-row"><span>Dias:</span>' + boxes + presets + '</div>' +
+    '<div class="sched-row"><span>Horário:</span><input type="time" data-timepair="1" ' + base + ' data-field="time_from" value="' + esc(String(r.time_from || '').slice(0, 5)) + '"> às ' +
+    '<input type="time" data-timepair="1" ' + base + ' data-field="time_to" value="' + esc(String(r.time_to || '').slice(0, 5)) + '"></div>' +
+    '<div class="sched-row"><span>Período:</span>Início <input type="datetime-local" ' + attrs(table, r, 'starts_at', 'date') + ' value="' + toLocalInput(r.starts_at) + '"> Fim <input type="datetime-local" ' + attrs(table, r, 'ends_at', 'date') + ' value="' + toLocalInput(r.ends_at) + '"></div>' +
+    '<div class="sched-hint">Sem dia marcado = todos os dias. Horário vazio = o dia todo. Faixa que passa da meia-noite (ex.: 22:00 às 06:00) vale para o dia em que começa. Usa o fuso horário definido em Configurações.</div></details>';
 }
 function activeHtml(table, r) { return '<label class="chk"><input type="checkbox" ' + attrs(table, r, 'active', 'bool') + (r.active ? ' checked' : '') + '> Ativo</label>'; }
 function moveHtml(table, r) { return '<div class="item-move"><button title="Subir" data-act="move" data-table="' + table + '" data-id="' + esc(r.id) + '" data-dir="-1">▲</button><button title="Descer" data-act="move" data-table="' + table + '" data-id="' + esc(r.id) + '" data-dir="1">▼</button></div>'; }
@@ -450,6 +481,50 @@ function viewEspera() {
     '<div class="muted">As TVs recebem em até ~20 segundos.</div></div>';
 }
 
+/* ═════════════ ABA: PRÉVIA ═════════════ */
+function viewPrevia() {
+  return scopeBar('Prévia') +
+    '<div class="card"><div class="row"><strong>Simular data e hora:</strong><input type="datetime-local" id="simTime" style="max-width:230px" value="' + esc(S.sim ? toLocalInput(S.sim) : '') + '">' +
+    '<button class="btn sec sm" data-act="sim-now">Agora</button></div>' +
+    '<div class="muted">Serve para testar agendamentos (ex.: sábado às 10h). A data é lida no fuso do seu computador. Em branco = hora real.</div></div>' +
+    '<div class="prev-wrap" id="prevWrap"><iframe id="prevFrame" title="Prévia da TV" src="player.html?preview=1"></iframe></div>' +
+    '<div class="muted">Mostra o conteúdo <b>já salvo</b>, igual ao que a TV exibe (mídias, avisos, faixa, tempos de espera, emergência). Relógio e clima são reais.</div>';
+}
+function previewPayload() {
+  var sid = scopeId(), now = Date.now();
+  function pick(arr, map) {
+    return arr.filter(function (x) { return x.active && (!x.ends_at || Date.parse(x.ends_at) > now) && ((x.screen_id || null) === null || x.screen_id === sid); })
+      .sort(function (a, b) { return (((a.screen_id || null) !== null) - ((b.screen_id || null) !== null)) || (a.sort_order - b.sort_order) || String(a.created_at).localeCompare(String(b.created_at)); })
+      .map(map);
+  }
+  function common(x) { return { id: x.id, starts_at: x.starts_at, ends_at: x.ends_at, days: x.days || null, time_from: x.time_from || null, time_to: x.time_to || null }; }
+  function withCommon(x, extra) { var o = common(x); Object.keys(extra).forEach(function (k) { o[k] = extra[k]; }); return o; }
+  var sc = S.screens.filter(function (s) { return s.id === sid; })[0];
+  return {
+    status: 'ok', sim_time: S.sim || null,
+    screen: { id: sid, name: sc ? sc.name : 'Todas as TVs' },
+    settings: S.settings,
+    slides: pick(S.slides, function (x) { return withCommon(x, { type: x.type, name: x.name, path: x.storage_path, duration: x.duration }); }),
+    notices: pick(S.notices, function (x) { return withCommon(x, { badge: x.badge, label: x.label, text: x.text }); }),
+    ticker: pick(S.ticker, function (x) { return withCommon(x, { text: x.text }); })
+  };
+}
+function pushPreview() {
+  var f = $('#prevFrame');
+  if (S.tab !== 'previa' || !f || !f.contentWindow) return;
+  f.contentWindow.postMessage({ type: 'tv-preview', payload: previewPayload() }, '*');
+}
+function fitPreview() {
+  var w = $('#prevWrap'), f = $('#prevFrame');
+  if (w && f) f.style.transform = 'scale(' + (w.clientWidth / 1920) + ')';
+  if (f) f.addEventListener('load', pushPreview);
+}
+window.addEventListener('resize', function () { if (S.tab === 'previa') fitPreview(); });
+window.addEventListener('message', function (e) {
+  var f = $('#prevFrame');
+  if (f && e.source === f.contentWindow && e.data && e.data.type === 'tv-preview-ready') pushPreview();
+});
+
 /* ═════════════ ABA: CONFIGURAÇÕES ═════════════ */
 function viewConfig() {
   var s = S.settings;
@@ -463,7 +538,7 @@ function viewConfig() {
     '<div class="card"><h3>Clima</h3><label class="switch"><input type="checkbox" id="cWeather"' + (s.weather_enabled ? ' checked' : '') + '> Mostrar clima na barra lateral</label>' +
     '<div class="grid2"><div><div class="muted">Latitude</div><input id="cLat" type="number" step="0.0001" value="' + esc(s.weather_lat) + '"></div>' +
     '<div><div class="muted">Longitude</div><input id="cLon" type="number" step="0.0001" value="' + esc(s.weather_lon) + '"></div></div>' +
-    '<div><div class="muted">Fuso horário (ex.: America/Sao_Paulo)</div><input id="cTz" value="' + esc(s.weather_tz) + '"></div></div>' +
+    '<div><div class="muted">Fuso horário da organização (usado no clima e nos agendamentos — ex.: America/Sao_Paulo)</div><input id="cTz" value="' + esc(s.weather_tz) + '"></div></div>' +
     '<div class="card"><h3>Tempos de exibição</h3><div class="grid2">' +
     '<div><div class="muted">Segundos por imagem (padrão)</div><input id="cImg" type="number" min="3" max="300" value="' + esc(s.image_seconds) + '"></div>' +
     '<div><div class="muted">Segundos por aviso</div><input id="cNot" type="number" min="3" max="120" value="' + esc(s.notice_seconds) + '"></div>' +
@@ -487,6 +562,8 @@ $('#content').addEventListener('click', async function (e) {
   if (act === 'confirm-wait') return saveWait(true);
   if (act === 'save-emergency') return saveEmergency();
   if (act === 'save-config') return saveConfig();
+  if (act === 'days-preset') return saveDays(el.dataset.table, el.dataset.id, { weekdays: [1, 2, 3, 4, 5], weekend: [0, 6], all: [] }[el.dataset.preset]);
+  if (act === 'sim-now') { S.sim = ''; var si = $('#simTime'); if (si) si.value = ''; return pushPreview(); }
   if (act === 'pick-logo') return $('#logoInput').click();
   if (act === 'remove-logo') return removeLogo();
   if (act === 'change-pw') return changePw();
@@ -498,6 +575,9 @@ $('#content').addEventListener('change', function (e) {
   if (el.id === 'fileInput') { uploadFiles([].slice.call(el.files)); el.value = ''; return; }
   if (el.id === 'logoInput') { uploadLogo(el.files[0]); el.value = ''; return; }
   if (el.id === 'waitEnabled') { saveSettings({ wait_enabled: el.checked }, 'Salvo'); return; }
+  if (el.id === 'simTime') { S.sim = el.value ? new Date(el.value).toISOString() : ''; pushPreview(); return; }
+  if (el.dataset && el.dataset.days) return saveDays(el.dataset.table, el.dataset.id, [].slice.call(el.closest('details').querySelectorAll('input[data-days]:checked')).map(function (i) { return parseInt(i.value, 10); }));
+  if (el.dataset && el.dataset.timepair) return saveTimes(el);
   if (el.dataset && el.dataset.table) autosave(el);
 });
 $('#content').addEventListener('dragover', function (e) { var d = e.target.closest('#drop'); if (d) { e.preventDefault(); d.classList.add('over'); } });
@@ -524,6 +604,22 @@ async function autosave(el) {
   row[field] = val; el.classList.add('flash'); setTimeout(function () { el.classList.remove('flash'); }, 700);
   if (field === 'active' || field === 'starts_at' || field === 'ends_at') render();
   toast('Salvo');
+}
+async function saveDays(table, id, arr) {
+  var row = arrFor(table).filter(function (x) { return x.id === id; })[0]; if (!row) return;
+  var val = (arr.length === 0 || arr.length === 7) ? null : arr.slice().sort(function (a, b) { return a - b; });
+  var r = await q(sb.from(table).update({ days: val }).eq('id', id));
+  if (!r) { render(); return; }
+  row.days = val; toast('Salvo'); render();
+}
+async function saveTimes(el) {
+  var table = el.dataset.table, id = el.dataset.id, box = el.closest('details');
+  var row = arrFor(table).filter(function (x) { return x.id === id; })[0]; if (!row) return;
+  var f = box.querySelector('[data-field="time_from"]').value, t = box.querySelector('[data-field="time_to"]').value;
+  if (!!f !== !!t) return toast('Preencha o horário de início e o de fim (ou apague os dois).', true);
+  var r = await q(sb.from(table).update({ time_from: f || null, time_to: t || null }).eq('id', id));
+  if (!r) { render(); return; }
+  row.time_from = f || null; row.time_to = t || null; toast('Salvo'); render();
 }
 async function saveSettings(patch, okMsg) {
   patch.updated_at = new Date().toISOString();

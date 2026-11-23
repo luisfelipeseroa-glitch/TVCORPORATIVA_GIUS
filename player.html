@@ -161,8 +161,9 @@ body.idle { cursor: none; }
 (function () {
 'use strict';
 
-var VERSION = '3.0.0';
+var VERSION = '3.1.0';
 var CFG = window.TV_CONFIG || {};
+var PREVIEW = /[?&]preview=1(&|$)/.test(location.search);   // modo prévia: embutido no painel, não pareia nem consulta o servidor
 var POLL_MS = 20000, PAIR_POLL_MS = 5000, RETRY_MS = 10000;
 var CACHE_NAME = 'tv-media-v1';
 var BADGES = ['ok','info','warn','alert'];
@@ -195,9 +196,39 @@ function pubUrl(path) {
 var data = null, lastKey = '', skew = 0;
 function now() { return Date.now() + skew; }
 function S() { return (data && data.settings) || DEFAULT_SETTINGS; }
+/* Dia da semana e minuto do dia no fuso da organização (usa a hora do servidor, não a do aparelho) */
+var fmtCache = { tz: null, f: null };
+function nowParts() {
+  var t = new Date(now()), tz = S().weather_tz || 'America/Sao_Paulo';
+  try {
+    if (fmtCache.tz !== tz) {
+      fmtCache.f = new Intl.DateTimeFormat('en-US', { timeZone: tz, weekday: 'short', hour: 'numeric', minute: 'numeric', hour12: false });
+      fmtCache.tz = tz;
+    }
+    var o = {};
+    fmtCache.f.formatToParts(t).forEach(function (p) { o[p.type] = p.value; });
+    var wd = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 }[o.weekday];
+    if (wd === undefined) throw new Error('weekday');
+    return { dow: wd, min: (parseInt(o.hour, 10) % 24) * 60 + parseInt(o.minute, 10) };
+  } catch (e) { return { dow: t.getDay(), min: t.getHours() * 60 + t.getMinutes() }; }
+}
+function toMin(t) { var p = String(t).split(':'); return (parseInt(p[0], 10) || 0) * 60 + (parseInt(p[1], 10) || 0); }
+/* Um item aparece quando: está dentro do período (início/fim), no dia da semana marcado e dentro da faixa de horário.
+   Faixa que passa da meia-noite (ex.: 22:00–06:00) vale para o dia em que COMEÇA. */
 function visible(it) {
   var t = now();
-  return (!it.starts_at || Date.parse(it.starts_at) <= t) && (!it.ends_at || Date.parse(it.ends_at) > t);
+  if (it.starts_at && Date.parse(it.starts_at) > t) return false;
+  if (it.ends_at && Date.parse(it.ends_at) <= t) return false;
+  var hasDays = it.days && it.days.length, hasTime = it.time_from && it.time_to;
+  if (!hasDays && !hasTime) return true;
+  var P = nowParts(), dow = P.dow;
+  if (hasTime) {
+    var f = toMin(it.time_from), e = toMin(it.time_to);
+    if (f < e) { if (P.min < f || P.min >= e) return false; }
+    else if (f > e) { if (P.min < f && P.min >= e) return false; if (P.min < e) dow = (dow + 6) % 7; }
+  }
+  if (hasDays && it.days.indexOf(dow) < 0) return false;
+  return true;
 }
 
 /* ═══ RELÓGIO ═══ */
@@ -364,7 +395,7 @@ function buildStatusBar() {
 function cacheOk() { return !!(window.caches && window.fetch); }
 var syncing = false, resync = false;
 function syncMediaCache() {
-  if (!cacheOk() || !data) return;
+  if (!cacheOk() || !data || PREVIEW) return;
   if (syncing) { resync = true; return; }
   syncing = true;
   var urls = (data.slides || []).map(function (s) { return pubUrl(s.path); });
@@ -487,7 +518,7 @@ function refreshSlides() {
 
 /* ═══ APLICAÇÃO DOS DADOS ═══ */
 function applyPayload(p) {
-  var key = JSON.stringify([p.settings, p.slides, p.notices, p.ticker, p.screen]);
+  var key = JSON.stringify([p.settings, p.slides, p.notices, p.ticker, p.screen, p.sim_time || null]);
   if (key === lastKey) return;
   var prevWeather = data ? JSON.stringify([S().weather_lat, S().weather_lon, S().weather_enabled]) : null;
   lastKey = key; data = p;
@@ -516,6 +547,7 @@ function deviceInfo() { return ('v' + VERSION + ' ' + screen.width + 'x' + scree
 var pollTimer = null;
 function schedule(ms) { clearTimeout(pollTimer); pollTimer = setTimeout(tick, ms); }
 async function tick() {
+  if (PREVIEW) return;
   try {
     var cred = lsGet('tv_cred', null);
     if (!cred || !cred.screen_id) {
@@ -550,6 +582,17 @@ async function tick() {
 
 /* ═══ INICIALIZAÇÃO ═══ */
 (function init() {
+  if (PREVIEW) {   // dentro do painel: só recebe o conteúdo por mensagem do painel (pai)
+    applyBrand();
+    window.addEventListener('message', function (e) {
+      var m = e.data;
+      if (e.source !== window.parent || !m || m.type !== 'tv-preview' || !m.payload) return;
+      skew = m.payload.sim_time ? Date.parse(m.payload.sim_time) - Date.now() : 0;
+      applyPayload(m.payload);
+    });
+    try { window.parent.postMessage({ type: 'tv-preview-ready' }, '*'); } catch (e) {}
+    return;
+  }
   var cache = lsGet('tv_cache', null);
   if (cache && lsGet('tv_cred', null)) { applyPayload(cache); getWeather(); }   // arranque imediato, mesmo offline
   else { applyBrand(); }
@@ -559,8 +602,9 @@ async function tick() {
 
 /* Recarga diária às 04:00 (pega nova versão do player e limpa memória) */
 setInterval(function () {
+  if (PREVIEW) return;
   var d = new Date(), hm = d.toTimeString().slice(0, 5), day = d.toDateString();
-  if (hm === '04:00' && lsGet('tv_last_reload', '') !== day) { lsSet('tv_last_reload', day); location.reload(); }
+  if (hm === '04:00'&& lsGet('tv_last_reload', '') !== day) { lsSet('tv_last_reload', day); location.reload(); }
 }, 30000);
 
 /* Cursor some após 3 s parado; tela cheia ao clicar */
@@ -568,6 +612,7 @@ var idleT;
 function wake() { document.body.classList.remove('idle'); clearTimeout(idleT); idleT = setTimeout(function () { document.body.classList.add('idle'); }, 3000); }
 ['mousemove', 'mousedown', 'keydown', 'touchstart'].forEach(function (ev) { document.addEventListener(ev, wake); }); wake();
 document.addEventListener('click', function () {
+  if (PREVIEW) return;
   var el = document.documentElement;
   if (!document.fullscreenElement && el.requestFullscreen) el.requestFullscreen().catch(function () {});
 });
